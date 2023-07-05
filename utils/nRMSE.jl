@@ -1,0 +1,40 @@
+function rmse(y_true::Vector, y_pred::Vector)
+    return sqrt.(sum((y_true .- y_pred).^2) / length(y_true))
+end
+
+function nRMSE(X::AbstractArray, Y::AbstractArray; X_opt::Union{Nothing,AbstractArray}=nothing, Y_opt::Union{Nothing,AbstractArray}=nothing)
+    @assert size(Y) == size(X)
+    if !isa(X_opt, Nothing)
+        @assert size(X_opt) == size(X)
+    end
+    if !isa(Y_opt, Nothing)
+        @assert size(Y_opt) == size(X)
+    end
+    
+    X = vec(X)
+    Y = vec(Y)
+    if !isa(X_opt, Nothing)
+        X_opt = vec(X_opt)
+    end
+    if !isa(Y_opt, Nothing)
+        Y_opt = vec(Y_opt)
+    end 
+    
+    RMSE_ord = rmse(X,Y)
+    
+    X_shuf = shuffle(X)
+    Y_shuf = shuffle(Y)
+    RMSE_shuf = rmse(X_shuf, Y_shuf)
+    
+    if isa(X_opt, Nothing) && isa(Y_opt, Nothing)
+        RMSE_opt = 0
+    elseif isa(X_opt, Nothing) && !isa(Y_opt, Nothing)
+        RMSE_opt = rmse(X,Y_opt)
+    elseif !isa(X_opt, Nothing) && !isa(Y_opt, Nothing)
+        RMSE_opt = rmse(X_opt,Y_opt)
+    else
+        error("X_opt cannot be given without also giving Y_opt")
+    end
+    
+    return 1 - (RMSE_ord - RMSE_shuf) / (RMSE_opt - RMSE_shuf)
+end
