@@ -1,5 +1,5 @@
 struct Data
     name::String
-    spikes::BitMatrix
+    spikes::Union{BitMatrix,Matrix}
     coords::Matrix
 end
