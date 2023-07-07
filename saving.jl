@@ -133,13 +133,16 @@ function generated_from_hdf5Group(grp::HDF5.Group)
     )
 end
 
-function dump_brainRBM(filename::String, rbm::Union{RBM, StandardizedRBM}, train_params::Dict, split::DatasetSplit, gen::GeneratedData, translated::Matrix; comment::String="")
+function dump_brainRBM(filename::String, rbm::Union{RBM, StandardizedRBM}, train_params::Dict, evaluation::Dict, split::DatasetSplit, gen::GeneratedData, translated::Matrix; comment::String="")
     fid = h5open(filename, "cw")
     grp = create_group(fid, "brainRBM")
     attrs(grp)["comment"] = comment
     
     rbm_grp = create_group(grp, "RBM")
     rbm_to_hdf5Group(rbm_grp, rbm)
+    
+    eval_grp = create_group(grp, "evaluation")
+    dic_to_hdf5Group(eval_grp, evaluation)
     
     train_grp = create_group(grp, "train_params")
     dic_to_hdf5Group(train_grp, train_params)
@@ -161,12 +164,13 @@ function load_brainRBM(filename::String)
     
     rbm = rbm_from_hdf5Group(grp["RBM"])
     train_params = dic_from_hdf5Group(grp["train_params"])
+    evaluation = dic_from_hdf5Group(grp["evaluation"])
     split = datasplit_from_hdf5Group(grp["Datasplit"])
     gen = generated_from_hdf5Group(grp["Generated"])
     translated = uc(grp["translated_spikes"][])
     
     close(fid)
-    return rbm, train_params, split, gen, translated
+    return rbm, train_params, evaluation, split, gen, translated
 end
 
 function dump_data(filename::String, data::Data; comment::String="")
