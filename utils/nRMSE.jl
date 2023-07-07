@@ -38,3 +38,12 @@ function nRMSE(X::AbstractArray, Y::AbstractArray; X_opt::Union{Nothing,Abstract
     
     return 1 - (RMSE_ord - RMSE_shuf) / (RMSE_opt - RMSE_shuf)
 end
+
+function nRMSE_from_moments(M::MomentsAggregate)
+    stats = ["<v>","<h>","<vh>","<vv> - <v><v>","<hh> - <h><h>"]
+    d = Dict()
+    for a in stats
+        d[a] = nRMSE(M.valid[a], M.gen[a], Y_opt=M.train[a])
+    end
+    return d
+end

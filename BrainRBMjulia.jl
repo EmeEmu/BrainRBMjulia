@@ -14,7 +14,7 @@ using ValueHistories: MVHistory, @trace
 using ProgressMeter
 using Clustering
 
-export gpu, cpu, Binary, xReLU, free_energy, RBM, StandardizedRBM, inputs_h_from_v, sample_from_inputs, RBM, translate, sample_h_from_v, AbstractLayer, mean_v_from_h, mean_h_from_v
+export gpu, cpu, Binary, xReLU, Gaussian, free_energy, RBM, StandardizedRBM, inputs_h_from_v, sample_from_inputs, RBM, translate, sample_h_from_v, AbstractLayer, mean_v_from_h, mean_h_from_v, initialize!, standardize
 export mean, std, var, cov, cor, quantile
 
 
@@ -41,7 +41,7 @@ export dump_data, load_data, dump_brainRBM, load_brainRBM
 
 
 include("utils/nRMSE.jl")
-export nRMSE
+export nRMSE, nRMSE_from_moments
 
 include("utils/reorder.jl")
 export reorder_hus!
