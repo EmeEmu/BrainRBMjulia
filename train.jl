@@ -10,12 +10,16 @@ function training_wrapper(
         decay_from::Number=0.25, # 0.25
         l2l1::Number=0.001, # 0.001
         l1::Number=0, # 0
+            ϵv::Number=1f-1, # 1f-1
+            ϵh::Number=0f0, # 0f0
+        damping::Number=1f-1,
         record_ps::Bool=true, # true
+        verbose::Bool=true, # true
     )
     
     decay_g = (lr_stop/lr_start)^(1/(iters*(1-decay_from)))
     history = MVHistory()
-    progBar = Progress(iters, dt=0.1, desc="Training: ", showspeed=true);
+    progBar = Progress(iters, dt=0.1, desc="Training: ", showspeed=true, enabled =verbose);
     
     function callback(; rbm, optim, state, ps, iter, vm, vd, ∂)
         # learning rate section
@@ -51,9 +55,9 @@ function training_wrapper(
         vm, 
         l2l1_weights=l2l1,
         l1_weights=l1,
-        ϵv=1f-1, # 1f-1
-        ϵh=0f0, # 0f0
-        damping=1f-1,
+            ϵv=ϵv, # 1f-1
+            ϵh=ϵh, # 0f0
+        damping=damping,
         callback
     )
     
@@ -66,8 +70,8 @@ function training_wrapper(
             ("decay_from", decay_from),
             ("l2l1", l2l1),
             ("l1", l1),
-            ("ϵv", 1f-1),
-            ("ϵh", 0f0),
-            ("damping", 1f-1),
+            ("ϵv", ϵv),
+            ("ϵh", ϵh),
+            ("damping", damping),
         ])
 end
