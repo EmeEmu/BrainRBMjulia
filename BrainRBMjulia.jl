@@ -37,11 +37,11 @@ include("statistics.jl")
 export compute_all_moments, reconstruction_likelihood, MomentsAggregate
 
 include("saving.jl")
-export dump_data, load_data, dump_brainRBM, load_brainRBM
+export dump_data, load_data, dump_brainRBM, load_brainRBM, load_brainRBM_eval, rank_brainRBMs
 
 
 include("utils/nRMSE.jl")
-export nRMSE, nRMSE_from_moments
+export nRMSE, nRMSE_from_moments, nRMSEs_Lp, nRMSEs_L4
 
 include("utils/reorder.jl")
 export reorder_hus!

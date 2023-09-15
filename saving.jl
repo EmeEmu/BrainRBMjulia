@@ -173,6 +173,38 @@ function load_brainRBM(filename::String)
     return rbm, train_params, evaluation, split, gen, translated
 end
 
+function load_brainRBM_eval(filename::String; ignore="")
+    fid = h5open(filename, "r")
+    grp = fid["brainRBM"]
+    evaluation = dic_from_hdf5Group(grp["evaluation"])
+    close(fid)
+    if ~isempty(ignore)
+        delete!(evaluation, ignore)
+    end
+    return evaluation
+end
+function load_brainRBM_eval(filenames::Vector{String}; ignore="")
+    return [load_brainRBM_eval(f; ignore=ignore) for f in filenames]
+end
+function rank_brainRBMs(paths::Vector{String}; ignore="", bestn=-1)
+    evals = load_brainRBM_eval(paths; ignore=ignore)
+    norms = nRMSEs_L4(evals)
+    inds = sortperm(norms)
+    if bestn != -1
+        inds = inds[1:bestn]
+    end
+    return paths[inds], norms[inds]
+end
+function rank_brainRBMs(paths::Vector{String}, norm::Function; ignore="", bestn=-1)
+    evals = load_brainRBM_eval(paths; ignore=ignore)
+    norms = norm(evals)
+    inds = sortperm(norms)
+    if bestn != -1
+        inds = inds[1:bestn]
+    end
+    return paths[inds], norms[inds]
+end
+
 function dump_data(filename::String, data::Data; comment::String="")
     fid = h5open(filename, "cw")
     grp = create_group(fid, "Data")

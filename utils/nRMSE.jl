@@ -47,3 +47,22 @@ function nRMSE_from_moments(M::MomentsAggregate)
     end
     return d
 end
+
+function nRMSEs_Lp(nrmses::Dict, p::Int=1; max::Bool=false)
+    if max
+        v = ones(length(nrmses))
+    else
+        v = clamp.(values(nrmses), 0, 1)
+    end
+    return sum(v.^p).^(1/p)
+end
+function nRMSEs_Lp(nrmses::Vector{Dict{Any, Any}}, p::Int=1; max::Bool=false)
+    if max
+        return nRMSEs_Lp(nrmses[1], p; max=true)
+    else
+        return [nRMSEs_Lp(ns, p) for ns in nrmses]
+    end
+end
+function nRMSEs_L4(nrmses::Union{Dict,Vector{Dict{Any, Any}}} ; max::Bool=false)
+    return nRMSEs_Lp(nrmses, 4; max=max)
+end

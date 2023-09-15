@@ -164,4 +164,12 @@ function misc_plots(rbm::Union{RBM,StandardizedRBM}, spikes::AbstractArray)
 end;
 
 
+using JuliaGrapher: Makie
+Makie.convert_arguments(P::Type{<:PolarNRMSEPlotter}, path::String) = (load_brainRBM_eval(path),)
+
+function Makie.convert_arguments(P::Type{<:multiPolarNRMSEPlotter}, paths::Vector{String})
+    evals = load_brainRBM_eval(paths)
+    norm = nRMSEs_L4(evals) ./ nRMSEs_L4(evals; max=true)
+    return ( evals , norm )
+end
 
