@@ -21,6 +21,10 @@ struct MomentsAggregate
     train::Dict{String, Matrix}
     valid::Dict{String, Matrix}
 end
+struct SimpleMomentsAggregate
+    gen::Dict{String, Matrix}
+    data::Dict{String, Matrix}
+end
 
 function compute_all_moments(rbm, data::DatasetSplit, gen::GeneratedData)
     h_train = sample_h_from_v(rbm, data.train)
@@ -29,6 +33,13 @@ function compute_all_moments(rbm, data::DatasetSplit, gen::GeneratedData)
         compute_moments(gen.v, gen.h),
         compute_moments(data.train, h_train),
         compute_moments(data.valid, h_valid),
+    )
+end
+function compute_all_moments(rbm, data::AbstractArray, gen::GeneratedData)
+    h_data = sample_h_from_v(rbm, data)
+    return SimpleMomentsAggregate(
+        compute_moments(gen.v, gen.h),
+        compute_moments(data, h_data),
     )
 end
 

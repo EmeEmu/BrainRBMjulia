@@ -68,6 +68,14 @@ function nRMSE_from_moments(M::MomentsAggregate)
     end
     return d
 end
+function nRMSE_from_moments(M::SimpleMomentsAggregate)
+    stats = ["<v>","<h>","<vh>","<vv> - <v><v>","<hh> - <h><h>"]
+    d = Dict()
+    for a in stats
+        d[a] = nRMSE(M.data[a], M.gen[a])
+    end
+    return d
+end
 
 function nRMSEs_Lp(nrmses::Dict, p::Int=1; max::Bool=false)
     if max
