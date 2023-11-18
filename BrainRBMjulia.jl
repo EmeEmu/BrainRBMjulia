@@ -53,4 +53,7 @@ export swap_hidden_sign
 include("coupling.jl")
 export coupling_approx
 
+include("utils/voxels.jl")
+export VoxelGrid, vox_to_neur_activity
+
 end
