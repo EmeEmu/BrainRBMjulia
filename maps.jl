@@ -9,11 +9,11 @@ struct BoxAround
     lims .+= hcat(+scale .* padding, -scale .* padding)'
     new(lims, round.(Int, lims[1, :] - lims[2, :]), lims[2, :])
   end
-  function BoxAround(coords::Matrix; padding::Int=100)
-    lims = vcat(maximum(coords, dims=1), minimum(coords, dims=1))
-    lims .+= hcat(+padding, -padding)'
-    new(lims, round.(Int, lims[1, :] - lims[2, :]), lims[2, :])
-  end
+  # function BoxAround(coords::Matrix; padding::Int=100)
+  #   lims = vcat(maximum(coords, dims=1), minimum(coords, dims=1))
+  #   lims .+= hcat(+padding, -padding)'
+  #   new(lims, round.(Int, lims[1, :] - lims[2, :]), lims[2, :])
+  # end
 end
 
 function ball_mask(R::Int)
