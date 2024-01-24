@@ -14,6 +14,8 @@ using ValueHistories: MVHistory, @trace
 using ProgressMeter
 using Clustering
 using LinearAlgebra: diagind
+using FLoops
+using NaNStatistics
 
 export gpu, cpu, Binary, xReLU, Gaussian, free_energy, RBM, StandardizedRBM, inputs_h_from_v, sample_from_inputs, RBM, translate, reconstruct, sample_h_from_v, AbstractLayer, mean_v_from_h, mean_h_from_v, initialize!, standardize
 export mean, std, var, cov, cor, quantile
@@ -39,6 +41,9 @@ export compute_all_moments, reconstruction_likelihood, MomentsAggregate
 
 include("saving.jl")
 export dump_data, load_data, dump_brainRBM, load_brainRBM, load_brainRBM_eval, rank_brainRBMs
+
+include("maps.jl")
+export smooth, BoxAround, build_map, JS_distance
 
 
 include("utils/nRMSE.jl")
