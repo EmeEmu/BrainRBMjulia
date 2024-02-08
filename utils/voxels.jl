@@ -4,6 +4,8 @@ struct VoxelGrid
   Ns::Vector{Int64}
   voxsize::Vector{Float64}
 
+  map::Array{Float64,3}
+  goods::Vector{CartesianIndex{3}}
   voxel_composition::Matrix{Vector{Int64}}
   voxel_activities::Vector{Matrix{Float64}}
   neuron_affiliation::Vector{Vector{Int64}}
@@ -14,14 +16,17 @@ struct VoxelGrid
     voxsize::Vector{Float64}=[20.0, 20.0, 20.0],
     pad::Float64=0.1
   )
-    size = voxsize
-    orgs, ends = grid_from_points(coords; size, pad)
-    Ns = [length(orgs[i]:size[i]:ends[i]) for i in 1:length(orgs)]
-    indss = project_to_grid(coords, size, orgs)
-    voxs, capacity = populate_voxels(indss, Ns)
-    goods = select_voxels(capacity)
+    size = voxsize # size of the voxels
+    orgs, ends = grid_from_points(coords; size, pad) # box around point cloud
+    Ns = [length(orgs[i]:size[i]:ends[i]) for i in 1:length(orgs)] # number of voxels in each direction
+    indss = project_to_grid(coords, size, orgs) # point coordinates to grid coordinates
+    voxs, capacity = populate_voxels(indss, Ns) # place points in voxels + count nb of point in each voxel
+    goods = select_voxels(capacity) # voxel selection criteria
+    map = Array{Float32}(undef, Ns...)
+    map[:, :, :] .= NaN32
+    map[goods] .= 1.0
     vox_composition, vox_activities, neuron_affil = build_voxels(voxs, goods, acts)
-    new(orgs, ends, Ns, voxsize, vox_composition, vox_activities, neuron_affil)
+    new(orgs, ends, Ns, voxsize, map, goods, vox_composition, vox_activities, neuron_affil)
   end
 end
 

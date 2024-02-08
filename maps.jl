@@ -118,7 +118,7 @@ function JS_distance(ps::Array{Float32,4})
   JSD = Matrix{Float64}(undef, (n, n))
   @floop for i in 1:n
     for j in i+1:n
-      JSD[i, j] = JSD[j, i] = JS_distance(ps[i, :, :, :], PDFs[j, :, :, :])
+      JSD[i, j] = JSD[j, i] = JS_distance(ps[i, :, :, :], ps[j, :, :, :])
     end
     JSD[i, i] = 0
   end
