@@ -336,3 +336,57 @@ function load_data(filename::String)
     coords,
   )
 end
+
+
+"""
+You can pass a Voxel_Grid_Object to this function. And this function will save it locally
+as an HDF5 file. The resulting HDF5 file will contain all of the data of the original Voxel_Grid_Object.
+"""
+function dump_voxel(filename::String, voxel::Any; comment::String="")
+    fid = h5open(filename, "cw")
+    grp = create_group(fid, "VoxelGrid")                                                       #----- MAIN GROUP 
+    attrs(grp)["comment"] = comment
+    
+    grp["origins"]            = voxel.origins
+    grp["ends"]               = voxel.ends
+    grp["Ns"]                 = voxel.Ns
+    grp["voxsize"]            = voxel.voxsize
+    grp["map"]                = voxel.map
+    grp["goods"]              = voxel.goods
+    
+    
+    voxel_activities = create_group(grp, "voxel_activities")                                   #----- 1 x Main Group [VoxelGrid]
+    for i in 1:size(voxel.voxel_activities,1)
+        subgroup_name           =  "fish$i"
+        subgroup                =  create_group(voxel_activities, subgroup_name)               #----- 2 x sub-Group [voxel_activities]
+        subgroup["activities"]  =  voxel.voxel_activities[i]
+    end
+
+    
+    
+    neuron_affiliations = create_group(grp, "neuron_affiliations")                             #----- 1 x sub-Group [VoxelGrid]
+    for i in 1:size(voxel.neuron_affiliation,1)
+        subgroup_name                   =  "fish$i"
+        subgroup                        =  create_group(neuron_affiliations, subgroup_name)    #----- 2 x sub-Group [neuron_affiliations]
+        subgroup["neuron_affiliation"]  =  voxel.neuron_affiliation[i]
+    end
+
+    
+    
+    voxel_compositions = create_group(grp, "voxel_compositions")                               #----- 1 x sub-Group [VoxelGrid]
+    for i in 1:size(voxel.voxel_composition,1)
+        subgroup_name    = "fish$i"
+        subgroup         = create_group(voxel_compositions, subgroup_name)                     #----- 2 x sub-Group [voxel_compositions]
+        
+        for j in 1:size(voxel.voxel_composition[i,:],1)
+            subsubgroup_name        = "voxel$j"
+            subsubgroup             = create_group(subgroup, subsubgroup_name)                 #----- 3 x sub-Group [fish]
+            subsubgroup["voxel$j"]  = voxel.voxel_composition[i,j]
+        end
+    end
+    
+    
+    
+    close(fid)
+    return filename
+end

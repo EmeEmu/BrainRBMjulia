@@ -40,7 +40,7 @@ include("statistics.jl")
 export compute_all_moments, reconstruction_likelihood, MomentsAggregate
 
 include("saving.jl")
-export dump_data, load_data, dump_brainRBM, load_brainRBM, load_brainRBM_eval, rank_brainRBMs
+export dump_data, load_data, dump_brainRBM, load_brainRBM, load_brainRBM_eval, rank_brainRBMs, dump_voxel
 
 include("maps.jl")
 export smooth, BoxAround, build_map, JS_distance
