@@ -73,7 +73,7 @@ struct VoxelGrid
 
     # Voxel Compositions
     voxel_compositions  =  f["VoxelGrid/voxel_compositions"]
-    number_of_voxels    =  1247
+    number_of_voxels    =  length(f["VoxelGrid"]["voxel_compositions"]["fish1"])
     
     matrix_of_vectors_of_voxel_compositions = Matrix{Vector{Int64}}(undef, number_of_fish, number_of_voxels)
 
