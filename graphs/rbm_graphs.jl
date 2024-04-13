@@ -6,7 +6,7 @@ using BrainRBMjulia
 
 using BrainRBMjulia: GeneratedData, DatasetSplit, free_energy
 function generate_energy_plotter(rbm, gen::GeneratedData, data::DatasetSplit)
-  fig = Figure(resolution=(2 * 200, 200))
+  fig = Figure(size=(2 * 200, 200))
 
   ax = Axis(fig[1, 1], title="Thermalisation", xlabel="Thermalisation Steps", ylabel="mean Free Energy")
   lines!(ax, gen.thermal, color=:black)
@@ -32,7 +32,7 @@ function stats_plotter(moments::MomentsAggregate; nrmses::Union{Dict,Nothing}=no
     nrmses = nRMSE_from_moments(moments)
   end
 
-  fig = Figure(resolution=(3 * 200, 2 * 200))
+  fig = Figure(size=(3 * 200, 2 * 200))
   i = 1
   j = 1
   for a in stats
@@ -129,7 +129,7 @@ function misc_plots(rbm::Union{RBM,StandardizedRBM}, spikes::AbstractArray)
   h_trans = translate(rbm, spikes)
   C = cor(h_trans')
 
-  fig = Figure(resolution=CURRENT_THEME.resolution.val .* (4, 3))
+  fig = Figure(size=CURRENT_THEME.size.val .* (4, 3))
 
 
   ax_w = Axis(fig[1, 1], title="Weights", yscale=log10, xlabel=L"w_{i,j}", ylabel="Density")
@@ -168,8 +168,8 @@ using JuliaGrapher: Makie
 Makie.convert_arguments(P::Type{<:PolarNRMSEPlotter}, path::String) = (load_brainRBM_eval(path),)
 
 function Makie.convert_arguments(P::Type{<:multiPolarNRMSEPlotter}, paths::Vector{String})
-    evals = load_brainRBM_eval(paths)
-    norm = nRMSEs_L4(evals) ./ nRMSEs_L4(evals; max=true)
-    return ( evals , norm )
+  evals = load_brainRBM_eval(paths)
+  norm = nRMSEs_L4(evals) ./ nRMSEs_L4(evals; max=true)
+  return (evals, norm)
 end
 
