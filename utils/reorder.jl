@@ -18,3 +18,21 @@ function reorder_hus!(rbm::StandardizedRBM, v::AbstractArray)
     rbm.scale_h .= rbm.scale_h[order]
     rbm
 end
+
+function linear_order(coords::Matrix{Int64}, o::Vector)
+    lc = coords[:,o[1]]./maximum(coords[:,o[1]]).*100 + coords[:,o[2]]./maximum(coords[:,o[2]]).*1 + coords[:,o[3]]./maximum(coords[:,o[3]]).*0.01
+    sort_vi = sortperm(lc)
+    return sort_vi
+end
+
+function linear_order(vox::VoxelGrid, o::Vector)
+    return linear_order(getindex.(vox.goods, [1 2 3]), o)
+end
+
+function reorder_states_corr(X::AbstractMatrix)
+    C = cor(X)
+    C[isnan.(C)] .= 0
+    HCLUST = hclust(1 .- C, linkage=:ward, branchorder=:optimal)
+    sorder = HCLUST.order;
+    return sorder
+end

@@ -58,9 +58,6 @@ export smooth, BoxAround, build_map, JS_distance
 include("utils/nRMSE.jl")
 export nRMSE, nRMSE_from_moments, nRMSEs_Lp, nRMSEs_L4
 
-include("utils/reorder.jl")
-export reorder_hus!
-
 include("utils/swapsign.jl")
 export swap_hidden_sign
 
@@ -69,5 +66,8 @@ export coupling_approx
 
 include("utils/voxels.jl")
 export VoxelGrid, vox_to_neur_activity
+
+include("utils/reorder.jl")
+export reorder_hus!, linear_order, reorder_states_corr
 
 end
