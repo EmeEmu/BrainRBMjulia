@@ -40,7 +40,7 @@ include("state_sampling.jl")
 export state_sampling, state_distrib, state_proba, state_transition, mean_v_by_s
 
 include("train.jl")
-export training_wrapper
+export training_wrapper, training_wrapper_srbm
 
 include("generate.jl")
 export gen_data, GeneratedData
