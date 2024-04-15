@@ -62,11 +62,12 @@ function mean_v_by_s(
   rbm::Union{RBM,StandardizedRBM},
   srbm::Union{RBM,StandardizedRBM},
   spikes::AbstractArray;
-  n::Int=50
+  n::Int=50,
+  steps::Int=1
 )
   vs = repeat(spikes, 1, 1, n)
   vs = reshape(vs, (size(vs, 1), size(vs, 2) * size(vs, 3)))
-  vs = sample_v_from_v(rbm, vs; steps=1)
+  vs = sample_v_from_v(rbm, vs; steps)
 
   hs = sample_h_from_v(rbm, vs)
 
@@ -77,12 +78,12 @@ function mean_v_by_s(
   means = mapreduce(
     permutedims,
     vcat,
-    [mean(vs[:, findall(ss .== s)], dims=2)[:, 1] for s in 1:S]
+    [mean(vs[:, findall(ss .== s)], dims=2)[:, 1] for s in 0:S-1]
   )
   stds = mapreduce(
     permutedims,
     vcat,
-    [std(vs[:, findall(ss .== s)], dims=2)[:, 1] for s in 1:S]
+    [std(vs[:, findall(ss .== s)], dims=2)[:, 1] for s in 0:S-1]
   )
 
   return means, stds
