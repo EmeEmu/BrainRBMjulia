@@ -280,6 +280,143 @@ function rank_brainRBMs(paths::Vector{String}, norm::Function; ignore="", bestn=
   return paths[inds], norms[inds]
 end
 
+
+"""
+    dump_stateRBM(
+        filename::String, 
+        rbmpath::String,
+        srbm::RBM, 
+        train_params::Dict, 
+        evaluation::Dict, 
+        split::DatasetSplit, 
+        gen::GeneratedData,
+        v_mean_std::Array{Float64, 3},
+        state_proba::Matrix{Float64}; 
+        comment::String=""
+      )::String
+
+Save all information about a trained RBM to a HDF5 file.
+
+### Input
+
+- `filename`    -- name of the file to save the RBM
+- `rbmpath`     -- path to the parent brainRBM .h5 file
+- `srbm`        -- trained stateRBM
+- `train_params`-- dictionary with training parameters
+- `evaluation`  -- dictionary with evaluation of the rbm;
+                    typicaly nRMSE values
+- `split`       -- dataset split used for training
+- `gen`         -- generated data
+- `v_mean_std`  -- mean and std of visible activation in the brainRBM
+                    for each state (computed from repeated sampling)
+- `state_proba` -- probability of each state for each time frame in
+                    the data
+- `comment`     -- (optional, default: `""`) comment to add to the file
+
+### Output
+
+- `filename`    -- name of the file saved
+"""
+function dump_stateRBM(
+  filename::String,
+  rbmpath::String,
+  srbm::RBM,
+  train_params::Dict,
+  evaluation::Dict,
+  split::DatasetSplit,
+  gen::GeneratedData,
+  v_mean_std::Array{Float64,3},
+  state_proba::Matrix{Float64};
+  comment::String=""
+)
+  fid = h5open(filename, "cw")
+  grp = create_group(fid, "stateRBM")
+  attrs(grp)["comment"] = comment
+  grp["parent_rbm_path"] = rbmpath
+
+  rbm_grp = create_group(grp, "RBM")
+  rbm_to_hdf5Group(rbm_grp, srbm)
+
+  eval_grp = create_group(grp, "evaluation")
+  dic_to_hdf5Group(eval_grp, evaluation)
+
+  train_grp = create_group(grp, "train_params")
+  dic_to_hdf5Group(train_grp, train_params)
+
+  split_grp = create_group(grp, "Datasplit")
+  datasplit_to_hdf5Group(split_grp, split)
+
+  gen_grp = create_group(grp, "Generated")
+  generated_to_hdf5Group(gen_grp, gen)
+
+  grp["visible_mean_std"] = v_mean_std
+  grp["state_propability"] = state_proba
+
+  close(fid)
+  return filename
+end
+
+
+"""
+    load_stateRBM(
+        filename::String
+      )::Tuple{
+            String,
+            RBM, 
+            Dict, 
+            Dict, 
+            DatasetSplit, 
+            GeneratedData,
+            Array{Float64, 3},
+            Matrix{Float64}; 
+        }
+
+Load all information about a trained stateRBM from a HDF5 file.
+
+### Input
+
+- `filename`    -- name of the file to load the RBM
+
+### Output
+
+- `rbmpath`     -- path to the parent brainRBM .h5 file
+- `srbm`        -- trained stateRBM
+- `train_params`-- dictionary with training parameters
+- `evaluation`  -- dictionary with evaluation of the rbm;
+                    typicaly nRMSE values
+- `split`       -- dataset split used for training
+- `gen`         -- generated data
+- `v_mean_std`  -- mean and std of visible activation in the brainRBM
+                    for each state (computed from repeated sampling)
+- `state_proba` -- probability of each state for each time frame in
+                    the data
+"""
+function load_stateRBM(filename::String)
+  fid = h5open(filename, "r")
+  grp = fid["stateRBM"]
+
+  rbmpath = grp["parent_rbm_path"][]
+  srbm = rbm_from_hdf5Group(grp["RBM"])
+  train_params = dic_from_hdf5Group(grp["train_params"])
+  evaluation = dic_from_hdf5Group(grp["evaluation"])
+  split = datasplit_from_hdf5Group(grp["Datasplit"])
+  gen = generated_from_hdf5Group(grp["Generated"])
+  v_mean_std = grp["visible_mean_std"][]
+  state_proba = grp["state_propability"][]
+
+  close(fid)
+  return rbmpath, srbm, train_params, evaluation, split, gen, v_mean_std, state_proba
+end
+
+
+
+
+
+
+
+
+
+
 """
     dump_data(filename::String, data::Data; comment::String="")::String
 
@@ -343,50 +480,50 @@ You can pass a Voxel_Grid_Object to this function. And this function will save i
 as an HDF5 file. The resulting HDF5 file will contain all of the data of the original Voxel_Grid_Object.
 """
 function dump_voxel(filename::String, voxel::Any; comment::String="")
-    fid = h5open(filename, "cw")
-    grp = create_group(fid, "VoxelGrid")                                                       #----- MAIN GROUP 
-    attrs(grp)["comment"] = comment
-    
-    grp["origins"]            = voxel.origins
-    grp["ends"]               = voxel.ends
-    grp["Ns"]                 = voxel.Ns
-    grp["voxsize"]            = voxel.voxsize
-    grp["map"]                = voxel.map
-    grp["goods"]              = voxel.goods
-    
-    
-    voxel_activities = create_group(grp, "voxel_activities")                                   #----- 1 x Main Group [VoxelGrid]
-    for i in 1:size(voxel.voxel_activities,1)
-        subgroup_name           =  "fish$i"
-        subgroup                =  create_group(voxel_activities, subgroup_name)               #----- 2 x sub-Group [voxel_activities]
-        subgroup["activities"]  =  voxel.voxel_activities[i]
-    end
+  fid = h5open(filename, "cw")
+  grp = create_group(fid, "VoxelGrid")                                                       #----- MAIN GROUP 
+  attrs(grp)["comment"] = comment
 
-    
-    
-    neuron_affiliations = create_group(grp, "neuron_affiliations")                             #----- 1 x sub-Group [VoxelGrid]
-    for i in 1:size(voxel.neuron_affiliation,1)
-        subgroup_name                   =  "fish$i"
-        subgroup                        =  create_group(neuron_affiliations, subgroup_name)    #----- 2 x sub-Group [neuron_affiliations]
-        subgroup["neuron_affiliation"]  =  voxel.neuron_affiliation[i]
-    end
+  grp["origins"] = voxel.origins
+  grp["ends"] = voxel.ends
+  grp["Ns"] = voxel.Ns
+  grp["voxsize"] = voxel.voxsize
+  grp["map"] = voxel.map
+  grp["goods"] = voxel.goods
 
-    
-    
-    voxel_compositions = create_group(grp, "voxel_compositions")                               #----- 1 x sub-Group [VoxelGrid]
-    for i in 1:size(voxel.voxel_composition,1)
-        subgroup_name    = "fish$i"
-        subgroup         = create_group(voxel_compositions, subgroup_name)                     #----- 2 x sub-Group [voxel_compositions]
-        
-        for j in 1:size(voxel.voxel_composition[i,:],1)
-            subsubgroup_name        = "voxel$j"
-            subsubgroup             = create_group(subgroup, subsubgroup_name)                 #----- 3 x sub-Group [fish]
-            subsubgroup["voxel$j"]  = voxel.voxel_composition[i,j]
-        end
+
+  voxel_activities = create_group(grp, "voxel_activities")                                   #----- 1 x Main Group [VoxelGrid]
+  for i in 1:size(voxel.voxel_activities, 1)
+    subgroup_name = "fish$i"
+    subgroup = create_group(voxel_activities, subgroup_name)               #----- 2 x sub-Group [voxel_activities]
+    subgroup["activities"] = voxel.voxel_activities[i]
+  end
+
+
+
+  neuron_affiliations = create_group(grp, "neuron_affiliations")                             #----- 1 x sub-Group [VoxelGrid]
+  for i in 1:size(voxel.neuron_affiliation, 1)
+    subgroup_name = "fish$i"
+    subgroup = create_group(neuron_affiliations, subgroup_name)    #----- 2 x sub-Group [neuron_affiliations]
+    subgroup["neuron_affiliation"] = voxel.neuron_affiliation[i]
+  end
+
+
+
+  voxel_compositions = create_group(grp, "voxel_compositions")                               #----- 1 x sub-Group [VoxelGrid]
+  for i in 1:size(voxel.voxel_composition, 1)
+    subgroup_name = "fish$i"
+    subgroup = create_group(voxel_compositions, subgroup_name)                     #----- 2 x sub-Group [voxel_compositions]
+
+    for j in 1:size(voxel.voxel_composition[i, :], 1)
+      subsubgroup_name = "voxel$j"
+      subsubgroup = create_group(subgroup, subsubgroup_name)                 #----- 3 x sub-Group [fish]
+      subsubgroup["voxel$j"] = voxel.voxel_composition[i, j]
     end
-    
-    
-    
-    close(fid)
-    return filename
+  end
+
+
+
+  close(fid)
+  return filename
 end
