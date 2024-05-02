@@ -37,7 +37,7 @@ export encode_binary, decode_binary, Nstates_per_Nbits, Nbits_per_Nstates
 include("rbms.jl")
 export BrainRBM, StateRBM, build_training_h, translate, reconstruct
 include("state_sampling.jl")
-export state_sampling, state_distrib, state_proba, state_transition, mean_v_by_s
+export state_sampling, state_distrib, state_proba, state_transition, mean_v_by_s, state_max
 
 include("train.jl")
 export training_wrapper, training_wrapper_srbm

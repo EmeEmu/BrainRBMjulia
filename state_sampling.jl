@@ -47,6 +47,12 @@ function state_distrib(
   return state_distrib(rs, Nstates_per_Nbits(length(srbm.hidden.θ)))
 end
 
+function state_max(ps::Matrix{Float64})
+  states = [c[1] for c in argmax(ps, dims=1)[1, :]]
+  probs = [ps[states[t], t] for t in 1:size(ps, 2)]
+  return states .- 1, probs
+end
+
 function state_proba(ps::Matrix{Float64})
   return mean(ps, dims=2)[:, 1]
 end
