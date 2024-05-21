@@ -16,6 +16,7 @@ using Clustering
 using LinearAlgebra: diagind
 using FLoops
 using NaNStatistics
+using Combinatorics
 using StatsBase: Histogram, fit
 
 export gpu, cpu, Binary, xReLU, Gaussian, free_energy, RBM, StandardizedRBM, inputs_h_from_v, sample_from_inputs, RBM, translate, reconstruct, sample_h_from_v, AbstractLayer, mean_v_from_h, mean_h_from_v, initialize!, standardize
@@ -26,7 +27,7 @@ include("utils/dataset.jl")
 export Data
 
 include("utils/split_testtrain.jl")
-export split_set, DatasetSplit
+export split_set, DatasetSplit, SectionSplit
 
 include("utils/misc.jl")
 export zscore, quantile_2d
