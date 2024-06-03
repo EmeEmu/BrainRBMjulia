@@ -35,65 +35,86 @@ function ball_mask(R::Int)
   return ballnan, ballint
 end
 
-function build_map(coords::Matrix{Float32}, weights::Vector{Float32}, box::BoxAround; R=4)
-  ballnan, ballint = ball_mask(R)
-  cint = round.(Int, coords .- box.origin')
+function int_coords(coords::AbstractMatrix, box::BoxAround)
+  return round.(Int, coords .- box.origin')
+end
+
+function create_map(coords::AbstractMatrix, weights::AbstractVector, box::BoxAround; R::Int=4, verbose::Bool=true)
+  _, ballint = ball_mask(R)
+  cint = int_coords(coords, box)
 
   mapint = zeros(Int, box.size...)
+  map = zeros(Float32, box.size...)
+  progBar = Progress(size(cint, 1), dt=0.1, desc="Creating Map: ", showspeed=true, enabled=verbose)
   for c in 1:size(cint, 1)
     i, j, k = cint[c, :]
     mapint[i-R:i+R, j-R:j+R, k-R:k+R] += ballint
-  end
-
-
-  map = Array{Float32}(undef, box.size...)
-  map[mapint.==0] .= NaN
-  for c in 1:size(cint, 1)
-    i, j, k = cint[c, :]
     map[i-R:i+R, j-R:j+R, k-R:k+R] .+= ballint .* weights[c]
+    next!(progBar)
   end
 
   return map ./= mapint
 end
-
-function build_map(coords::Matrix{Float32}, weights::Matrix{Float32}, box::BoxAround; R=4)
-  map = Array{Float32}(undef, size(weights, 2), box.size...)
-  @showprogress for i in 1:size(weights, 2)
-    map[i, :, :, :] = build_map(coords, weights[:, i], box; R)
+function create_map(coords::AbstractMatrix, weights::AbstractMatrix, box::BoxAround; R=4, verbose::Bool=true)
+  maps = Array{Float32}(undef, size(weights, 2), box.size...)
+  progBar = Progress(size(weights, 2), dt=0.1, desc="Creating Maps: ", showspeed=true, enabled=verbose)
+  for i in 1:size(weights, 2)
+    maps[i, :, :, :] = create_map(coords, weights[:, i], box; R, verbose=false)
+    next!(progBar)
   end
-  return map
+  return maps
 end
 
-
-function gaussian(x, y, z, σ=1)
-  return (1 / (2 * π * σ^2)) * exp(-(x^2 + y^2 + z^2) / (2 * σ)^2)
-end
-function gaussian_kernel(; k=100, σ=5)
-  c = k ÷ 2
-  K = [gaussian(i - c, j - c, k - c, σ) for i = 1:k, j = 1:k, k = 1:k]
-  return K ./ sum(K)
+function map_finite!(map::AbstractArray; val::Real=0)
+  return replace!(map, Inf => val, -Inf => val, NaN => val)
 end
 
-function smooth(map::Array{Float32,3}, kernel::Array{Float32,3})
-  K = size(kernel, 1) ÷ 2
+function gaussian3D(box::BoxAround, σ::Real=1)
+  x0, y0, z0 = box.size .÷ 2
+  gauss(x, y, z) = exp(-((x - x0)^2 + (y - y0)^2 + (z - z0)^2) / (2 * σ^2))
+  xs, ys, zs = [1:box.size[i] for i in 1:3]
+  G = [gauss(x, y, z) for x in xs, y in ys, z in zs]
+  return G
+end
 
-  S = Array{Float32}(undef, size(map))
-  S .= NaN32
-
-  ini = K + 1
-  fin = size(map) .- K
-  @floop for i in ini:fin[1], j in ini:fin[2], k in ini:fin[3]
-    @views S[i, j, k] = nanmean(map[i-K:i+K, j-K:j+K, k-K:k+K])
+function interpolate_map(coords::AbstractMatrix, map::AbstractArray{T,3}, box::BoxAround) where {T<:AbstractFloat}
+  cint = int_coords(coords, box)
+  return [map[cint[i, :]...] for i in 1:size(cint, 1)]
+end
+function interpolate_map(coords::AbstractMatrix, maps::AbstractArray{T,4}, box::BoxAround; verbose=true) where {T<:AbstractFloat}
+  w = Array{typeof(maps[1])}(undef, size(coords, 1), size(maps, 1))
+  progBar = Progress(size(maps, 1), dt=0.1, desc="Interpolating Maps: ", showspeed=true, enabled=verbose)
+  for i in 1:size(maps, 1)
+    w[:, i] .= interpolate_map(coords, maps[i, :, :, :], box)
+    next!(progBar)
   end
-
-  return S
+  return w
 end
 
-function smooth(map::Array{Float32,3}, σ::Real)
-  k = trunc(Int, 4 * σ)
-  k = (k ÷ 2) * 2 + 1
-  kernel = Float32.(gaussian_kernel(; k, σ))
-  return smooth(map, kernel)
+function smooth_map(map::AbstractArray{T,3}, box::BoxAround, σ::Real) where {T<:AbstractFloat}
+  K = gaussian3D(box, σ)
+  K ./= sum(K)
+  sK = fftshift(K)
+  F = plan_rfft(K)
+  fK = F * sK
+  fmap = F * map
+  return irfft(fK .* fmap, size(K, 1))
+end
+function smooth_map(maps::AbstractArray{T,4}, box::BoxAround, σ::Real; verbose::Bool=true) where {T<:AbstractFloat}
+  K = gaussian3D(box, σ)
+  K ./= sum(K)
+  sK = fftshift(K)
+  F = plan_rfft(K)
+  fK = F * sK
+  iF = plan_irfft(fK, size(K, 1))
+  M = copy(maps)
+  progBar = Progress(size(maps, 1), dt=0.1, desc="Smoothing Maps: ", showspeed=true, enabled=verbose)
+  for i in 1:size(maps, 1)
+    fmap = F * maps[i, :, :, :]
+    M[i, :, :, :] .= iF * (fK .* fmap)
+    next!(progBar)
+  end
+  return M
 end
 
 

@@ -18,6 +18,7 @@ using FLoops
 using NaNStatistics
 using Combinatorics
 using StatsBase: Histogram, fit
+using AbstractFFTs
 
 export gpu, cpu, Binary, xReLU, Gaussian, free_energy, RBM, StandardizedRBM, inputs_h_from_v, sample_from_inputs, RBM, translate, reconstruct, sample_h_from_v, AbstractLayer, mean_v_from_h, mean_h_from_v, initialize!, standardize
 export mean, std, var, cov, cor, quantile
@@ -53,8 +54,7 @@ include("saving.jl")
 export dump_data, load_data, dump_brainRBM, load_brainRBM, dump_stateRBM, load_stateRBM, load_brainRBM_eval, rank_brainRBMs, dump_voxel
 
 include("maps.jl")
-export smooth, BoxAround, build_map, JS_distance
-
+export BoxAround, JS_distance, create_map, map_finite!, interpolate_map, smooth_map
 
 include("utils/nRMSE.jl")
 export nRMSE, nRMSE_from_moments, nRMSEs_Lp, nRMSEs_L4
