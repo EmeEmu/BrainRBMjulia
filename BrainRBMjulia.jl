@@ -54,7 +54,7 @@ include("saving.jl")
 export dump_data, load_data, dump_brainRBM, load_brainRBM, dump_stateRBM, load_stateRBM, load_brainRBM_eval, rank_brainRBMs, dump_voxel
 
 include("maps.jl")
-export BoxAround, JS_distance, create_map, map_finite!, interpolate_map, smooth_map
+export BoxAround, JS_distance, create_map, map_finite!, interpolation, Maps, dump_maps
 
 include("utils/nRMSE.jl")
 export nRMSE, nRMSE_from_moments, nRMSEs_Lp, nRMSEs_L4

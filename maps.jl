@@ -9,11 +9,10 @@ struct BoxAround
     lims .+= hcat(+scale .* padding, -scale .* padding)'
     new(lims, round.(Int, lims[1, :] - lims[2, :]), lims[2, :])
   end
-  # function BoxAround(coords::Matrix; padding::Int=100)
-  #   lims = vcat(maximum(coords, dims=1), minimum(coords, dims=1))
-  #   lims .+= hcat(+padding, -padding)'
-  #   new(lims, round.(Int, lims[1, :] - lims[2, :]), lims[2, :])
-  # end
+
+  function BoxAround(lims::Matrix{Float64}, size::Vector{Int}, origin::Vector{Float64})
+    new(lims, size, origin)
+  end
 end
 
 function ball_mask(R::Int)
@@ -65,10 +64,15 @@ function create_map(coords::AbstractMatrix, weights::AbstractMatrix, box::BoxAro
   return maps
 end
 
+function map_finite(map::AbstractArray; val::Real=0)
+  return replace(map, Inf => val, -Inf => val, NaN => val)
+end
 function map_finite!(map::AbstractArray; val::Real=0)
   return replace!(map, Inf => val, -Inf => val, NaN => val)
 end
 
+
+# FFT smoothing interpolation ________________________________________________
 function gaussian3D(box::BoxAround, σ::Real=1)
   x0, y0, z0 = box.size .÷ 2
   gauss(x, y, z) = exp(-((x - x0)^2 + (y - y0)^2 + (z - z0)^2) / (2 * σ^2))
@@ -116,6 +120,178 @@ function smooth_map(maps::AbstractArray{T,4}, box::BoxAround, σ::Real; verbose:
   end
   return M
 end
+# FFT smoothing interpolation ________________________________________________
+
+
+# ball gaussian interpolation ________________________________________________
+function nan_mean(x::AbstractArray, w::AbstractArray)
+  y = x .* w
+  idx = isfinite.(y)
+  return sum(y[idx])
+end
+
+function region(map::AbstractArray{T,3}, xyz::Vector{Int}, R::Int) where {T<:AbstractFloat}
+  x, y, z = xyz
+  return map[x-R:x+R, y-R:y+R, z-R:z+R]
+end
+
+function regionmean(map::AbstractArray{T,3}, xyz::Vector{Int}, K::AbstractArray{T,3}, R::Int) where {T<:AbstractFloat}
+  # x,y,z = xyz
+  # return nan_mean(map[x-R:x+R, y-R:y+R, z-R:z+R], K)
+  return nan_mean(region(map, xyz, R), K)
+end
+function regionmean(map::AbstractArray{T,3}, xyz::Matrix{Int}, K::AbstractArray{T,3}, R::Int) where {T<:AbstractFloat}
+  return [regionmean(map, xyz[i, :], K, R) for i in 1:size(xyz, 1)]
+end
+function regionmean(maps::AbstractArray{T,4}, xyz::Matrix{Int}, K::AbstractArray{T,3}, R::Int; verbose=true) where {T<:AbstractFloat}
+  w = Array{typeof(maps[1])}(undef, size(xyz, 1), size(maps, 1))
+  progBar = Progress(size(maps, 1), dt=0.1, desc="Interpolating Maps: ", showspeed=true, enabled=verbose)
+  @floop for h in 1:size(maps, 1)
+    w[:, h] .= regionmean(maps[h, :, :, :], xyz, K, R)
+    next!(progBar)
+  end
+  finish!(progBar)
+  return w
+end
+
+function ball_gaussian3D(σ::Real=2, r::Int=2)
+  # σ=gaussian std  ;  r=ball radius
+
+  # creating ball
+  bm = ball_mask(r)[2]
+  sbm = size(bm, 1)
+
+  # computing kernel size
+  R = Int(ceil(4 * σ))
+  L = 2 * R + 2
+  L += sbm
+
+  # getting ball indices in kernel space
+  ball_idx = [[x[1], x[2], x[3]] for x in findall(bm .== 1)]
+  ball_idx = permutedims(hcat(ball_idx...))
+  ball_idx .+= ((L - sbm) / 2)
+  ball_idx = ball_idx #.- 0.5
+
+  # 3D gaussian
+  gauss(x, y, z, x0, y0, z0) = exp(-((x - x0)^2 + (y - y0)^2 + (z - z0)^2) / (2 * σ^2))
+
+  # merging gaussians
+  xs, ys, zs = [1:L for i in 1:3]
+  Gs = [
+    [gauss(x, y, z, ball_idx[i, 1], ball_idx[i, 2], ball_idx[i, 3]) for x in xs, y in ys, z in zs]
+    for i in 1:size(ball_idx, 1)]
+  G = sum(Gs)
+  return Float32.(G ./ sum(bm))
+end
+
+function interpolation(maps::AbstractArray{T,4}, xyz::AbstractMatrix, σ::Real, R::Int, box::BoxAround; verbose=true) where {T<:AbstractFloat}
+  K = ball_gaussian3D(σ, R)
+  L = size(K, 1)
+  l = Int(floor(L / 2))
+  cint = int_coords(xyz, box)
+  return regionmean(maps, cint, K, l; verbose)
+end
+# ball gaussian interpolation ________________________________________________
+
+
+struct Maps
+  scaling::Float64
+  box::BoxAround
+  radius::Int
+  σ::Float64
+  maps::Array{Float32}
+  β::Vector{Float64}
+
+  function Maps(
+    coords::AbstractMatrix,
+    X::AbstractArray;
+    scaling::Float64=2.0, padding::Float64=0.1,
+    R::Int=4,
+    σ::Float64=4.0,
+    verbose=true
+  )
+    # scaling space
+    R = Int(round(R / scaling))
+    σ = σ / scaling
+    coords = coords ./ scaling
+
+    # building map
+    box = BoxAround(coords; padding)
+    nmaps = create_map(coords, X, box; R, verbose)
+
+    A = interpolation(nmaps, coords, σ, R, box; verbose)
+    bA = find_optimal_bias(X, A, minbias=0, maxbias=1, stepbias=0.005)
+
+    new(scaling, box, Int(R * scaling), σ * scaling, nmaps, bA)
+  end
+
+  function Maps(grp::HDF5.Group)
+    new(
+      grp["scaling"][],
+      BoxAround(
+        grp["box/lims"][],
+        grp["box/size"][],
+        grp["box/origin"][],
+      ),
+      grp["radius"][],
+      grp["sigma"][],
+      grp["maps"][],
+      grp["beta"][],
+    )
+  end
+end
+
+function dump_maps(grp::HDF5.Group, M::Maps; comment::String="")
+  attrs(grp)["comment"] = comment
+  grp["scaling"] = M.scaling
+  grp["radius"] = M.radius
+  grp["sigma"] = M.σ
+  grp["maps"] = M.maps
+  grp["beta"] = M.β
+  grp_box = create_group(grp, "box")
+  grp_box["lims"] = M.box.lims
+  grp_box["size"] = M.box.size
+  grp_box["origin"] = M.box.origin
+end
+function dump_maps(fid::HDF5.File, M::Maps, name::String; comment::String="")
+  grp = create_group(fid, name)
+  dump_maps(grp, M; comment)
+end
+function dump_maps(filename::String, M::Maps, name::String; comment::String="")
+  fid = h5open(filename, "cw")
+  dump_maps(fid, M, name; comment)
+  close(fid)
+  return filename
+end
+
+
+function interpolation(M::Maps, coords::AbstractMatrix; verbose=true)
+  A = interpolation(
+    M.maps,
+    coords ./ M.scaling,
+    M.σ / M.scaling,
+    Int(M.radius / M.scaling),
+    M.box;
+    verbose
+  )
+  return A .* M.β'
+end
+
+
+function find_optimal_bias(trueX::AbstractVector, newX::AbstractVector; minbias::Real=0, maxbias::Real=10, stepbias::Real=0.1)
+  opt_bias(b) = nRMSE(trueX, newX * b)
+  biases = minbias:stepbias:maxbias
+  rl = [opt_bias(b) for b in biases]
+  return biases[argmin(rl)]
+end
+function find_optimal_bias(trueX::AbstractMatrix, newX::AbstractMatrix; minbias::Real=0, maxbias::Real=10, stepbias::Real=0.1)
+  biases = Vector{Float64}(undef, size(trueX, 2))
+  @floop for i in 1:size(trueX, 2)
+    biases[i] = find_optimal_bias(trueX[:, i], newX[:, i]; minbias, maxbias, stepbias)
+  end
+  return biases
+end
+
 
 
 
