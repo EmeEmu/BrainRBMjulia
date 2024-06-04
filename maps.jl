@@ -191,6 +191,13 @@ function interpolation(maps::AbstractArray{T,4}, xyz::AbstractMatrix, σ::Real, 
   cint = int_coords(xyz, box)
   return regionmean(maps, cint, K, l; verbose)
 end
+function interpolation(maps::AbstractArray{T,3}, xyz::AbstractMatrix, σ::Real, R::Int, box::BoxAround; verbose=true) where {T<:AbstractFloat}
+  K = ball_gaussian3D(σ, R)
+  L = size(K, 1)
+  l = Int(floor(L / 2))
+  cint = int_coords(xyz, box)
+  return regionmean(maps, cint, K, l)
+end
 # ball gaussian interpolation ________________________________________________
 
 
