@@ -246,6 +246,34 @@ struct Maps
       grp["beta"][],
     )
   end
+
+  function Maps(
+    other::Maps,
+    coords::AbstractMatrix,
+    X::AbstractArray;
+    verbose=true
+  )
+    # getting params from other
+    scaling = other.scaling
+    box = other.box
+    radius = other.radius
+    σ = other.σ
+
+    # scaling space
+    R = Int(round(radius / scaling))
+    σ = σ / scaling
+    coords = coords ./ scaling
+
+    # building map
+    nmaps = create_map(coords, X, box; R, verbose)
+
+    A = interpolation(nmaps, coords, σ, R, box; verbose)
+    bA = find_optimal_bias(X, A, minbias=0, maxbias=1, stepbias=0.005)
+
+    new(scaling, box, Int(R * scaling), σ * scaling, nmaps, bA)
+  end
+
+
 end
 
 function dump_maps(grp::HDF5.Group, M::Maps; comment::String="")
