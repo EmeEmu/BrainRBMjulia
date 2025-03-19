@@ -1,11 +1,11 @@
-module BrainRBMjulia
+module BrainRBM
 
 
-using StandardizedRestrictedBoltzmannMachines: standardize, StandardizedRBM
+using RestrictedBoltzmannMachines: standardize, StandardizedRBM
 using RestrictedBoltzmannMachines: RBM, Binary, xReLU, pReLU, Gaussian, pcd!, initialize!,
-  sample_from_inputs, sample_h_from_v, sample_v_from_h, sample_v_from_v, mean_from_inputs, mode_from_inputs,
-  mean_h_from_v, mean_v_from_h, free_energy, inputs_h_from_v, inputs_v_from_h, log_pseudolikelihood, AbstractLayer, var_from_inputs
-using CudaRBMs: gpu, cpu
+    sample_from_inputs, sample_h_from_v, sample_v_from_h, sample_v_from_v, mean_from_inputs, mode_from_inputs,
+    mean_h_from_v, mean_v_from_h, free_energy, inputs_h_from_v, inputs_v_from_h, log_pseudolikelihood, AbstractLayer, var_from_inputs
+using RestrictedBoltzmannMachines: gpu, cpu
 using Optimisers: Adam, adjust!
 using Statistics: mean, std, var, cov, cor, quantile
 using Random
@@ -37,7 +37,7 @@ include("utils/binary_utils.jl")
 export encode_binary, decode_binary, Nstates_per_Nbits, Nbits_per_Nstates
 
 include("rbms.jl")
-export BrainRBM, StateRBM, build_training_h, translate, reconstruct
+export brainRBM, stateRBM, build_training_h, translate, reconstruct
 include("state_sampling.jl")
 export state_sampling, state_distrib, state_proba, state_transition, mean_v_by_s, state_max
 
