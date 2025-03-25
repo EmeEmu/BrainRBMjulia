@@ -53,10 +53,10 @@ function rbm_to_hdf5Group(rbm_grp::HDF5.Group, rbm::RBM; comment::String="")
 end;
 function rbm_from_hdf5Group(grp::HDF5.Group)
     vlayer_type = attrs(grp["VisibleLayer"])["type"]
-    v_layer = getfield(BrainRBMjulia, Symbol(vlayer_type))(read(grp["VisibleLayer/params"]))
+    v_layer = getfield(BrainRBM, Symbol(vlayer_type))(read(grp["VisibleLayer/params"]))
 
     hlayer_type = attrs(grp["HiddenLayer"])["type"]
-    h_layer = getfield(BrainRBMjulia, Symbol(hlayer_type))(read(grp["HiddenLayer/params"]))
+    h_layer = getfield(BrainRBM, Symbol(hlayer_type))(read(grp["HiddenLayer/params"]))
 
     rbm_type = attrs(grp)["type"]
     if rbm_type == "StandardizedRBM"
