@@ -51,15 +51,45 @@ function rbm_to_hdf5Group(rbm_grp::HDF5.Group, rbm::RBM; comment::String="")
 
   rbm_grp["weights"] = rbm.w
 end;
-function rbm_from_hdf5Group(grp::HDF5.Group)
-  vlayer_type = attrs(grp["VisibleLayer"])["type"]
-  v_layer = getfield(BrainRBMjulia, Symbol(vlayer_type))(read(grp["VisibleLayer/params"]))
 
-  hlayer_type = attrs(grp["HiddenLayer"])["type"]
-  h_layer = getfield(BrainRBMjulia, Symbol(hlayer_type))(read(grp["HiddenLayer/params"]))
+# layer_type(::Binary) = "Binary"
+# layer_type(::Gaussian) = "Gaussian"
+# layer_type(::xReLU) = "xReLU"
+# layer_type(::RestrictedBoltzmannMachines.Binary) = "Binary"
+# layer_type(::RestrictedBoltzmannMachines.Gaussian) = "Gaussian"
+# layer_type(::RestrictedBoltzmannMachines.xReLU) = "xReLU"
+
+# construct_layer(layer_type::AbstractString, par::AbstractArray) = construct_layer(Val(Symbol(layer_type)), par)
+
+# construct_layer(::Val{:Binary}, par::AbstractArray) = Binary(par)
+# construct_layer(::Val{:Gaussian}, par::AbstractArray) = Gaussian(par)
+# construct_layer(::Val{:xReLU}, par::AbstractArray) = xReLU(par)
+# construct_layer(AbstractString{"RestrictedBoltzmannMachines.Binary"}, par::AbstractArray) = Binary(par)
+# construct_layer(AbstractString{"RestrictedBoltzmannMachines.Gaussian"}, par::AbstractArray) = Gaussian(par)
+# construct_layer(AbstractString{"RestrictedBoltzmannMachines.xReLU"}, par::AbstractArray) = xReLU(par)
+function construct_layer(layer_type::AbstractString, par::AbstractArray)
+  if occursin("Binary", layer_type)
+    return Binary(par)
+  elseif occursin("xReLU", layer_type)
+    return xReLU(par)
+  elseif occursin("Gaussian", layer_type)
+    return Gaussian(par)
+  else
+    throw("layer type $(layer_type) not recognized.")
+  end
+end
+
+function rbm_from_hdf5Group(grp::HDF5.Group)
+  # vlayer_type = attrs(grp["VisibleLayer"])["type"]
+  # v_layer = getfield(BrainRBMjulia, Symbol(vlayer_type))(read(grp["VisibleLayer/params"]))
+  v_layer = construct_layer(attrs(grp["VisibleLayer"])["type"], read(grp["VisibleLayer/params"]))
+
+  # hlayer_type = attrs(grp["HiddenLayer"])["type"]
+  # h_layer = getfield(BrainRBMjulia, Symbol(hlayer_type))(read(grp["HiddenLayer/params"]))
+  h_layer = construct_layer(attrs(grp["HiddenLayer"])["type"], read(grp["HiddenLayer/params"]))
 
   rbm_type = attrs(grp)["type"]
-  if rbm_type == "StandardizedRBM"
+  if occursin("StandardizedRBM", rbm_type)
     rbm = StandardizedRBM(
       v_layer,
       h_layer,
@@ -69,7 +99,7 @@ function rbm_from_hdf5Group(grp::HDF5.Group)
       read(grp["Standardization/scale_v"]),
       read(grp["Standardization/scale_h"]),
     )
-  elseif rbm_type == "RBM"
+  else
     rbm = RBM(
       v_layer,
       h_layer,
