@@ -83,7 +83,7 @@ function hu_params_plotter(pos::GridPosition, layer::xReLU)
     fontsize=7,
   )
 
-  return fig
+  # return fig
 end
 
 
@@ -119,7 +119,7 @@ function hidden_hists(pos::GridPosition, h_data, h_gen)
 
   ax = Axis(pos, title="Hidden Values per HU", xlabel="Hidden Units", ylabel="Hidden Values")
   violin!(ax, xs, ys, side=sides, color=colors, gap=0.01, datalimits=(-l, l), width=2)
-  return fig
+  # return fig
 end
 
 
