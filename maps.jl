@@ -232,6 +232,29 @@ struct Maps
     new(scaling, box, Int(R * scaling), σ * scaling, nmaps, bA)
   end
 
+  function Maps(
+    coords::AbstractMatrix,
+    box::BoxAround,
+    X::AbstractArray;
+    scaling::Float64=2.0,
+    R::Int=4,
+    σ::Float64=4.0,
+    verbose=true
+  )
+    # scaling space
+    R = Int(round(R / scaling))
+    σ = σ / scaling
+    coords = coords ./ scaling
+
+    # building map
+    nmaps = create_map(coords, X, box; R, verbose)
+
+    A = interpolation(nmaps, coords, σ, R, box; verbose)
+    bA = find_optimal_bias(X, A, minbias=0, maxbias=1, stepbias=0.005)
+
+    new(scaling, box, Int(R * scaling), σ * scaling, nmaps, bA)
+  end
+
   function Maps(grp::HDF5.Group)
     new(
       grp["scaling"][],
