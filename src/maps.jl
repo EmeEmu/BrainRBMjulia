@@ -44,22 +44,22 @@ function create_map(coords::AbstractMatrix, weights::AbstractVector, box::BoxAro
 
   mapint = zeros(Int, box.size...)
   map = zeros(Float32, box.size...)
-  progBar = Progress(size(cint, 1), dt=0.1, desc="Creating Map: ", showspeed=true, enabled=verbose)
+  # progBar = Progress(size(cint, 1), dt=0.1, desc="Creating Map: ", showspeed=true, enabled=verbose)
   for c in 1:size(cint, 1)
     i, j, k = cint[c, :]
     mapint[i-R:i+R, j-R:j+R, k-R:k+R] += ballint
     map[i-R:i+R, j-R:j+R, k-R:k+R] .+= ballint .* weights[c]
-    next!(progBar)
+    # next!(progBar)
   end
 
   return map ./= mapint
 end
 function create_map(coords::AbstractMatrix, weights::AbstractMatrix, box::BoxAround; R=4, verbose::Bool=true)
   maps = Array{Float32}(undef, size(weights, 2), box.size...)
-  progBar = Progress(size(weights, 2), dt=0.1, desc="Creating Maps: ", showspeed=true, enabled=verbose)
+  # progBar = Progress(size(weights, 2), dt=0.1, desc="Creating Maps: ", showspeed=true, enabled=verbose)
   for i in 1:size(weights, 2)
     maps[i, :, :, :] = create_map(coords, weights[:, i], box; R, verbose=false)
-    next!(progBar)
+    # next!(progBar)
   end
   return maps
 end
@@ -87,10 +87,10 @@ function interpolate_map(coords::AbstractMatrix, map::AbstractArray{T,3}, box::B
 end
 function interpolate_map(coords::AbstractMatrix, maps::AbstractArray{T,4}, box::BoxAround; verbose=true) where {T<:AbstractFloat}
   w = Array{typeof(maps[1])}(undef, size(coords, 1), size(maps, 1))
-  progBar = Progress(size(maps, 1), dt=0.1, desc="Interpolating Maps: ", showspeed=true, enabled=verbose)
+  # progBar = Progress(size(maps, 1), dt=0.1, desc="Interpolating Maps: ", showspeed=true, enabled=verbose)
   for i in 1:size(maps, 1)
     w[:, i] .= interpolate_map(coords, maps[i, :, :, :], box)
-    next!(progBar)
+    # next!(progBar)
   end
   return w
 end
@@ -145,12 +145,12 @@ function regionmean(map::AbstractArray{T,3}, xyz::Matrix{Int}, K::AbstractArray{
 end
 function regionmean(maps::AbstractArray{T,4}, xyz::Matrix{Int}, K::AbstractArray{T,3}, R::Int; verbose=true) where {T<:AbstractFloat}
   w = Array{typeof(maps[1])}(undef, size(xyz, 1), size(maps, 1))
-  progBar = Progress(size(maps, 1), dt=0.1, desc="Interpolating Maps: ", showspeed=true, enabled=verbose)
+  # progBar = Progress(size(maps, 1), dt=0.1, desc="Interpolating Maps: ", showspeed=true, enabled=verbose)
   @floop for h in 1:size(maps, 1)
     w[:, h] .= regionmean(maps[h, :, :, :], xyz, K, R)
-    next!(progBar)
+    # next!(progBar)
   end
-  finish!(progBar)
+  # finish!(progBar)
   return w
 end
 

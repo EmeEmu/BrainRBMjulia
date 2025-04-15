@@ -84,7 +84,7 @@ end
 function sections_to_rmses(v::M, ssplt::SectionSplit; N_vv::Int=100) where {M<:Union{BitMatrix,AbstractMatrix}}
   rmse_v = []
   rmse_vv = []
-  @showprogress desc = "Evaluating split combinations ..." for i in 1:length(ssplt.train_comb)
+  @progress name = "Evaluating split combinations" for i in 1:length(ssplt.train_comb)
     mv_train, mv_test, mvv_train, mvv_test = section_to_moments(i, v, ssplt; N_vv)
     push!(rmse_v, rmse(mv_train, mv_test))
     push!(rmse_vv, rmse(vec(mvv_train), vec(mvv_test)))

@@ -80,22 +80,28 @@ function training_wrapper(
 
   decay_g = (lr_stop / lr_start)^(1 / (iters * (1 - decay_from)))
   history = MVHistory()
-  progBar = Progress(iters, dt=0.1, desc="Training: ", showspeed=true, enabled=verbose)
+
+  if verbose
+    pbar_id = uuid4()
+	  pbar_name = "Training BrainRBM"
+    @logmsg ProgressLevel pbar_name progress=nothing _id=pbar_id
+  end
 
   function callback(; rbm, optim, state, ps, iter, vm, vd, ∂)
     # learning rate section
     lr = state.w.rule.eta
     if iter > decay_from * iters
-      adjust!(state, lr * decay_g)
+      adjust!(state, Float32(lr * decay_g))
     end
     @trace history iter lr
 
 
     # progress bar section
-    next!(progBar)
+    if verbose
+      @logmsg ProgressLevel pbar_name progress=iter/iters _id=pbar_id
+    end
 
     # pseudolikelihood section
-
     if iszero(iter % 200) & record_ps
       lpl = mean(log_pseudolikelihood(rbm, spikes))
       @trace history iter lpl
@@ -106,13 +112,17 @@ function training_wrapper(
 
   optim = Adam(lr_start, (9.0f-1, 999.0f-3), 1.0f-6) # (0f0, 999f-3), 1f-6
   n = size(rbm.visible)[1]
-  vm = sample_from_inputs(rbm.visible, gpu(zeros(n, batchsize)))
+  if isa(rbm.visible.par, CUDA.CuArray)
+    vm = sample_from_inputs(rbm.visible, gpu(zeros(n, batchsize)))
+  else
+    vm = sample_from_inputs(rbm.visible, zeros(n, batchsize))
+  end
   state, ps = pcd!(
     rbm, spikes;
     optim,
-    steps=steps,
+    steps,
     batchsize,
-    iters=iters,
+    iters,
     vm,
     l2l1_weights=l2l1,
     l1_weights=l1,
@@ -210,7 +220,11 @@ function training_wrapper_srbm(
 
   decay_g = (lr_stop / lr_start)^(1 / (iters * (1 - decay_from)))
   history = MVHistory()
-  progBar = Progress(iters, dt=0.1, desc="Training: ", showspeed=true, enabled=verbose)
+  if verbose
+    pbar_id = uuid4()
+	  pbar_name = "Training StateRBM"
+    @logmsg ProgressLevel pbar_name progress=nothing _id=pbar_id
+  end
 
   function callback(; rbm, optim, state, iter, vm, vd, wd)
     # learning rate section
@@ -222,7 +236,9 @@ function training_wrapper_srbm(
 
 
     # progress bar section
-    next!(progBar)
+    if verbose
+      @logmsg ProgressLevel pbar_name progress=iter/iters _id=pbar_id
+    end
 
     # pseudolikelihood section
 
@@ -236,7 +252,11 @@ function training_wrapper_srbm(
 
   optim = Adam(lr_start, (9.0f-1, 999.0f-3), 1.0f-6) # (0f0, 999f-3), 1f-6
   n = size(srbm.visible)[1]
-  vm = sample_from_inputs(srbm.visible, gpu(zeros(n, batchsize)))
+  if isa(srbm.visible.par, CUDA.CuArray)
+    vm = sample_from_inputs(srbm.visible, gpu(zeros(n, batchsize)))
+  else
+    vm = sample_from_inputs(srbm.visible, zeros(n, batchsize))
+  end
   state, ps = pcd!(
     srbm, train_x;
     optim,

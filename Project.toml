@@ -1,0 +1,45 @@
+name = "BrainRBMjulia"
+uuid = "0e978d05-b51d-4c0f-8b76-19ef46e5957b"
+authors = ["Mattéo Dommanget-Kott <matteo.d.kott@gmail.com>"]
+version = "0.2.0"
+
+[deps]
+AbstractFFTs = "621f4979-c628-5d54-868e-fcf4e3e8185c"
+CUDA = "052768ef-5323-5732-b1bb-66c8b64840ba"
+Clustering = "aaaa29a8-35af-508c-8bc3-b662a17a0fe5"
+Combinatorics = "861a8166-3701-5b0c-9a16-15d98fcdc6aa"
+FLoops = "cc61a311-1640-44b5-9fba-1b764f453329"
+HDF5 = "f67ccb44-e63f-5c2f-98bd-6dc0ccc4ba2f"
+Logging = "56ddb016-857b-54e1-b83d-db4d58db5568"
+Observables = "510215fc-4207-5dde-b226-833fc4488ee2"
+Optimisers = "3bd65402-5787-11e9-1adc-39752487f4e2"
+PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
+ProgressLogging = "33c8b6b6-d38a-422a-b730-caa89a2f386c"
+Random = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
+RestrictedBoltzmannMachines = "12e6b396-7db5-4506-8cb6-664a4fe1e50e"
+Statistics = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
+UUIDs = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
+ValueHistories = "98cad3c8-aec3-5f06-8e41-884608649ab7"
+
+[compat]
+AbstractFFTs = "1.5.0"
+Clustering = "0.15.8"
+Combinatorics = "1.0.2"
+FLoops = "0.2.2"
+HDF5 = "0.17.2"
+Logging = "1.11.0"
+Observables = "0.5.5"
+Optimisers = "0.4.6"
+PlutoUI = "0.7.23"
+ProgressLogging = "0.1.4"
+Random = "1.11.0"
+Statistics = "1.11.1"
+UUIDs = "1.11.0"
+ValueHistories = "0.5.4"
+julia = "1.11"
+
+[extras]
+GLMakie = "e9467ef8-e4e7-5192-8a1a-b1aee30e663a"
+
+[targets]
+example = ["GLMakie"]
