@@ -77,17 +77,7 @@ export state_sampling, state_distrib, state_proba, state_transition, mean_v_by_s
 include("maps.jl")
 export BoxAround, JS_distance, create_map, map_finite!, interpolation, Maps, dump_maps
 
+include("saving.jl")
+export dump_data, load_data, dump_brainRBM, load_brainRBM, dump_stateRBM, load_stateRBM, load_brainRBM_eval, rank_brainRBMs, dump_voxel
 
-
-
-# using ProgressMeter
-# using LinearAlgebra: diagind
-# using NaNStatistics
-# using StatsBase: Histogram, fit
-#
-# export Binary, xReLU, Gaussian, free_energy, RBM, StandardizedRBM, inputs_h_from_v, sample_from_inputs, RBM, translate, reconstruct, sample_h_from_v, AbstractLayer, mean_v_from_h, mean_h_from_v, initialize!, standardize
-#
-# include("saving.jl")
-# export dump_data, load_data, dump_brainRBM, load_brainRBM, dump_stateRBM, load_stateRBM, load_brainRBM_eval, rank_brainRBMs, dump_voxel
-#
 end
