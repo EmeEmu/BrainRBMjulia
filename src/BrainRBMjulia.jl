@@ -30,6 +30,7 @@ using FLoops
 using Optimisers: Adam, adjust!
 using ValueHistories: MVHistory, @trace
 using Combinatorics
+using HDF5: h5open, create_group, read, attrs
 
 
 include("rbms.jl")

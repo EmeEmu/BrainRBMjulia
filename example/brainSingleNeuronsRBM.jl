@@ -129,7 +129,7 @@ md"""
 saved_dataset_path = tempname() .* ".h5"
 
 # ╔═╡ 16475b74-d8fe-488c-97d3-70c4081da5d1
-#dump_data(saved_dataset_path, dataset, comment="fake dataset");
+dump_data(saved_dataset_path, dataset, comment="fake dataset");
 
 # ╔═╡ e12fb41f-e074-4367-893d-c7fdf8426d7a
 
@@ -301,15 +301,18 @@ md"""
 ## 2.6. Save rbm to disk
 """
 
+# ╔═╡ 5e1a4541-a4fd-4acd-8f39-b7805e2e4907
+saved_rbm_path = tempname() .* ".h5"
+
 # ╔═╡ 39bc7d58-fdb9-439d-bf7a-ba3a5ef6daf0
-# dump_brainRBM(
-# 				save*".h5", 
-# 				rbm, params, 
-# 				nrmses, 
-# 				dsplit, gen, 
-# 				translate(rbm, data.spikes) ; 
-# 				comment="from crossvalidation (no swap, no reorder)",
-# 			)
+dump_brainRBM(
+				saved_rbm_path, 
+				rbm, params, 
+				nrmses, 
+				dsplit, gen, 
+				translate(rbm, dataset.spikes) ; 
+				comment="Example rbm",
+			)
 
 # ╔═╡ db5ccd37-1e8a-4683-88dc-3c5190ed6a8f
 
@@ -425,6 +428,7 @@ heatmap(translate(rbm, dataset.spikes)', colormap=:berlin)
 # ╟─4f595730-5356-43a7-9966-f5a72f033750
 # ╠═ed4b1ab8-8dbf-4f78-85cf-10cd56682550
 # ╟─34fd81fa-bf8e-46b8-b58f-91a4e51de5da
+# ╠═5e1a4541-a4fd-4acd-8f39-b7805e2e4907
 # ╠═39bc7d58-fdb9-439d-bf7a-ba3a5ef6daf0
 # ╠═db5ccd37-1e8a-4683-88dc-3c5190ed6a8f
 # ╠═8af5299e-44d9-4fe9-b10e-3b529270184d
