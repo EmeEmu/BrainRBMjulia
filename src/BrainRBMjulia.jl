@@ -31,6 +31,7 @@ using Optimisers: Adam, adjust!
 using ValueHistories: MVHistory, @trace
 using Combinatorics
 using HDF5: h5open, create_group, read, attrs
+using LinearAlgebra: diagind
 
 
 include("rbms.jl")
@@ -81,4 +82,5 @@ export BoxAround, JS_distance, create_map, map_finite!, interpolation, Maps, dum
 include("saving.jl")
 export dump_data, load_data, dump_brainRBM, load_brainRBM, dump_stateRBM, load_stateRBM, load_brainRBM_eval, rank_brainRBMs, dump_voxel
 
+include("extendables.jl")
 end

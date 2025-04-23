@@ -1,10 +1,3 @@
-# used by invoking : include("this/file/path/rbm_graphs.jl")
-#
-using JuliaGrapher
-using BrainRBMjulia
-
-
-using BrainRBMjulia: GeneratedData, DatasetSplit, free_energy
 function generate_energy_plotter(rbm, gen::GeneratedData, data::DatasetSplit)
   fig = Figure(size=(2 * 200, 200))
 
@@ -22,8 +15,6 @@ function generate_energy_plotter(rbm, gen::GeneratedData, data::DatasetSplit)
   return fig
 end
 
-
-using BrainRBMjulia: MomentsAggregate, nRMSE
 function stats_plotter(moments::MomentsAggregate; nrmses::Union{Dict,Nothing}=nothing)
   stats = ["<v>", "<h>", "<vh>", "<vv> - <v><v>", "<hh> - <h><h>"]
 
@@ -54,7 +45,6 @@ function stats_plotter(moments::MomentsAggregate; nrmses::Union{Dict,Nothing}=no
   return fig
 end
 
-using JuliaGrapher: Top, Bottom, Label, violin!
 function hu_params_plotter(pos::GridPosition, layer::xReLU)
   g = GridLayout(pos)
 
@@ -85,8 +75,6 @@ function hu_params_plotter(pos::GridPosition, layer::xReLU)
 
   # return fig
 end
-
-
 
 function hidden_hists(pos::GridPosition, h_data, h_gen)
   M = size(h_data, 1)
@@ -124,52 +112,43 @@ end
 
 
 
-function misc_plots(rbm::Union{RBM,StandardizedRBM}, spikes::AbstractArray)
-  I_vh = inputs_h_from_v(rbm, spikes)
-  h_trans = translate(rbm, spikes)
-  C = cor(h_trans')
+# function misc_plots(rbm::Union{RBM,StandardizedRBM}, spikes::AbstractArray)
+#   I_vh = inputs_h_from_v(rbm, spikes)
+#   h_trans = translate(rbm, spikes)
+#   C = cor(h_trans')
+#
+#   fig = Figure(size=CURRENT_THEME.size.val .* (4, 3))
+#
+#
+#   ax_w = Axis(fig[1, 1], title="Weights", yscale=log10, xlabel=L"w_{i,j}", ylabel="Density")
+#   hist!(ax_w, vec(rbm.w), offset=1.e-0, bins=100, color=:black, normalization=:density)
+#
+#   ax_I = Axis(fig[1, 2], title="Inputs to Hidden", xlabel=L"I_{μ}", ylabel="Density")
+#   hist!(ax_I, vec(I_vh), offset=1.e-0, bins=100, color=:black, normalization=:density)
+#
+#   ax_Ph = Axis(fig[1, 3], title="Hidden Values", ylabel="P(h)", xlabel="h")
+#   density!(ax_Ph, vec(sample_from_inputs(rbm.hidden, I_vh)), label="sampled from inputs", color=:grey)
+#   density!(ax_Ph, vec(h_trans), label="translated", color=(:orange, 0.5))
+#   #axislegend(ax_Ph, position=:rt, framevisible)
+#
+#   ax_mh = Axis(fig[2, 2], title="Hidden Mean", xlabel="Mean h", ylabel="#")
+#   hist!(ax_mh, vec(mean(h_trans, dims=2)), bins=10, color=:black)
+#   ax_vh = Axis(fig[2, 3], title="Hidden Variance", xlabel="Var h", ylabel="#")
+#   hist!(ax_vh, vec(var(h_trans, dims=2)), bins=10, color=:orange)
+#
+#   ax_C = Axis(fig[3, 3], title="Hidden Correlations", xlabel="Hidden Units", ylabel="Hidden Units", aspect=1)
+#   h = corrplotter!(ax_C, C)
+#   Colorbar(fig[3, 4], h, label="Pearson Correlation")
+#
+#   hu_params_plotter(fig[2, 1], rbm.hidden)
+#
+#   #hidden_hists(fig[3,1:2], h_trans, gen.h)
+#
+#   ax_hact = Axis(fig[4, 1:3], title="Hidden Activity", xlabel="Time (frames)", ylabel="Hidden Units")
+#   l = quantile_range(h_trans)
+#   h = heatmap!(h_trans', colormap=:berlin, colorrange=(-l, +l))
+#   Colorbar(fig[4, 4], h, label="Hidden Value")
+#   return fig
+# end;
 
-  fig = Figure(size=CURRENT_THEME.size.val .* (4, 3))
-
-
-  ax_w = Axis(fig[1, 1], title="Weights", yscale=log10, xlabel=L"w_{i,j}", ylabel="Density")
-  hist!(ax_w, vec(rbm.w), offset=1.e-0, bins=100, color=:black, normalization=:density)
-
-  ax_I = Axis(fig[1, 2], title="Inputs to Hidden", xlabel=L"I_{μ}", ylabel="Density")
-  hist!(ax_I, vec(I_vh), offset=1.e-0, bins=100, color=:black, normalization=:density)
-
-  ax_Ph = Axis(fig[1, 3], title="Hidden Values", ylabel="P(h)", xlabel="h")
-  density!(ax_Ph, vec(sample_from_inputs(rbm.hidden, I_vh)), label="sampled from inputs", color=:grey)
-  density!(ax_Ph, vec(h_trans), label="translated", color=(:orange, 0.5))
-  #axislegend(ax_Ph, position=:rt, framevisible)
-
-  ax_mh = Axis(fig[2, 2], title="Hidden Mean", xlabel="Mean h", ylabel="#")
-  hist!(ax_mh, vec(mean(h_trans, dims=2)), bins=10, color=:black)
-  ax_vh = Axis(fig[2, 3], title="Hidden Variance", xlabel="Var h", ylabel="#")
-  hist!(ax_vh, vec(var(h_trans, dims=2)), bins=10, color=:orange)
-
-  ax_C = Axis(fig[3, 3], title="Hidden Correlations", xlabel="Hidden Units", ylabel="Hidden Units", aspect=1)
-  h = corrplotter!(ax_C, C)
-  Colorbar(fig[3, 4], h, label="Pearson Correlation")
-
-  hu_params_plotter(fig[2, 1], rbm.hidden)
-
-  #hidden_hists(fig[3,1:2], h_trans, gen.h)
-
-  ax_hact = Axis(fig[4, 1:3], title="Hidden Activity", xlabel="Time (frames)", ylabel="Hidden Units")
-  l = quantile_range(h_trans)
-  h = heatmap!(h_trans', colormap=:berlin, colorrange=(-l, +l))
-  Colorbar(fig[4, 4], h, label="Hidden Value")
-  return fig
-end;
-
-
-using JuliaGrapher: Makie
-Makie.convert_arguments(P::Type{<:PolarNRMSEPlotter}, path::String) = (load_brainRBM_eval(path),)
-
-function Makie.convert_arguments(P::Type{<:multiPolarNRMSEPlotter}, paths::Vector{String})
-  evals = load_brainRBM_eval(paths)
-  norm = nRMSEs_L4(evals) ./ nRMSEs_L4(evals; max=true)
-  return (evals, norm)
-end
 
