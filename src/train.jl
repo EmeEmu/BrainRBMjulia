@@ -83,22 +83,22 @@ function training_wrapper(
 
   if verbose
     pbar_id = uuid4()
-	  pbar_name = "Training BrainRBM"
-    @logmsg ProgressLevel pbar_name progress=nothing _id=pbar_id
+    pbar_name = "Training BrainRBM"
+    @logmsg ProgressLevel pbar_name progress = nothing _id = pbar_id
   end
 
   function callback(; rbm, optim, state, ps, iter, vm, vd, ∂)
     # learning rate section
     lr = state.w.rule.eta
     if iter > decay_from * iters
-      adjust!(state, Float32(lr * decay_g))
+      adjust!(state, typeof(lr)(lr * decay_g))
     end
     @trace history iter lr
 
 
     # progress bar section
     if verbose
-      @logmsg ProgressLevel pbar_name progress=iter/iters _id=pbar_id
+      @logmsg ProgressLevel pbar_name progress = iter / iters _id = pbar_id
     end
 
     # pseudolikelihood section
@@ -222,8 +222,8 @@ function training_wrapper_srbm(
   history = MVHistory()
   if verbose
     pbar_id = uuid4()
-	  pbar_name = "Training StateRBM"
-    @logmsg ProgressLevel pbar_name progress=nothing _id=pbar_id
+    pbar_name = "Training StateRBM"
+    @logmsg ProgressLevel pbar_name progress = nothing _id = pbar_id
   end
 
   function callback(; rbm, optim, state, iter, vm, vd, wd)
@@ -237,7 +237,7 @@ function training_wrapper_srbm(
 
     # progress bar section
     if verbose
-      @logmsg ProgressLevel pbar_name progress=iter/iters _id=pbar_id
+      @logmsg ProgressLevel pbar_name progress = iter / iters _id = pbar_id
     end
 
     # pseudolikelihood section
