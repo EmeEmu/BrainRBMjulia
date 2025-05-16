@@ -1,11 +1,11 @@
-function BrainRBM(spikes::AbstractArray, M::Union{Int,Dims})
+function brainRBM(spikes::AbstractArray, M::Union{Int,Dims})
     N = size(spikes)[1]
     rbm = RBM(Binary((N,)), xReLU((M,)), randn(Float64, (N, M)) * 0.01)
     initialize!(rbm, spikes)
     return standardize(rbm)
 end;
 
-function StateRBM(rbm::StandardizedRBM, X::AbstractArray, S::Int)
+function stateRBM(rbm::StandardizedRBM, X::AbstractArray, S::Int)
     M = size(rbm.hidden, 1)
     B = Nbits_per_Nstates(S)    # number of bits in state layer
     S = Nstates_per_Nbits(B)    # number of states possible from layer of `B` binaries

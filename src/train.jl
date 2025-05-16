@@ -13,7 +13,7 @@
 
 Training a StandardizedRBM from neuron activity. A wrapper of the pcd! method from
 RestrictedBoltzmannMachines.jl (see https://github.com/cossio/RestrictedBoltzmannMachines.jl/blob/master/src/train/pcd.jl).
-Adds geometricaly decaying learning rate, 
+Adds geometrically decaying learning rate
 
 
 ### Input
@@ -30,7 +30,7 @@ Adds geometricaly decaying learning rate,
                     update the fantasy chain; 
                     parsed to pcd!
 - `lr_start`    -- (optional, default: `5f-4`) starting learning rate;
-- `lr_strop`    -- (optional, default: `1f-5`) final learning rate;
+- `lr_stop`    -- (optional, default: `1f-5`) final learning rate;
 - `decay_from`  -- (optional, default: `0.25`) fraction of the training from 
                     which to start lerning rate decay;
 - `l2l1`        -- (optional, default: `1f-3`) L2L1 regularization of weights;
@@ -62,89 +62,89 @@ Using this function is not a guarentee of convergence. Proper convergence
 should be assessed systematicaly.
 """
 function training_wrapper(
-  rbm::StandardizedRBM,
-  spikes::AbstractArray; iters::Int=20000, # 50000
-  batchsize::Int=256, # 256
-  steps::Int=50, # 50
-  lr_start::Number=5.0f-4, # 1f-4
-  lr_stop::Number=1.0f-5, # 1f-5
-  decay_from::Number=0.25, # 0.25
-  l2l1::Number=0.001, # 0.001
-  l1::Number=0, # 0
-  ϵv::Number=1.0f-1, # 1f-1
-  ϵh::Number=0.0f0, # 0f0
-  damping::Number=1.0f-1,
-  record_ps::Bool=true, # true
-  verbose::Bool=true # true
+    rbm::StandardizedRBM,
+    spikes::AbstractArray; iters::Int=20000, # 50000
+    batchsize::Int=256, # 256
+    steps::Int=50, # 50
+    lr_start::Number=5.0f-4, # 1f-4
+    lr_stop::Number=1.0f-5, # 1f-5
+    decay_from::Number=0.25, # 0.25
+    l2l1::Number=0.001, # 0.001
+    l1::Number=0, # 0
+    ϵv::Number=1.0f-1, # 1f-1
+    ϵh::Number=0.0f0, # 0f0
+    damping::Number=1.0f-1,
+    record_ps::Bool=true, # true
+    verbose::Bool=true # true
 )
 
-  decay_g = (lr_stop / lr_start)^(1 / (iters * (1 - decay_from)))
-  history = MVHistory()
+    decay_g = (lr_stop / lr_start)^(1 / (iters * (1 - decay_from)))
+    history = MVHistory()
 
-  if verbose
-    pbar_id = uuid4()
-    pbar_name = "Training BrainRBM"
-    @logmsg ProgressLevel pbar_name progress = nothing _id = pbar_id
-  end
-
-  function callback(; rbm, optim, state, ps, iter, vm, vd, ∂)
-    # learning rate section
-    lr = state.w.rule.eta
-    if iter > decay_from * iters
-      adjust!(state, typeof(lr)(lr * decay_g))
-    end
-    @trace history iter lr
-
-
-    # progress bar section
     if verbose
-      @logmsg ProgressLevel pbar_name progress = iter / iters _id = pbar_id
+        pbar_id = uuid4()
+        pbar_name = "Training BrainRBM"
+        @logmsg ProgressLevel pbar_name progress = nothing _id = pbar_id
     end
 
-    # pseudolikelihood section
-    if iszero(iter % 200) & record_ps
-      lpl = mean(log_pseudolikelihood(rbm, spikes))
-      @trace history iter lpl
+    function callback(; rbm, optim, state, ps, iter, vm, vd, ∂)
+        # learning rate section
+        lr = state.w.rule.eta
+        if iter > decay_from * iters
+            adjust!(state, typeof(lr)(lr * decay_g))
+        end
+        @trace history iter lr
+
+
+        # progress bar section
+        if verbose
+            @logmsg ProgressLevel pbar_name progress = iter / iters _id = pbar_id
+        end
+
+        # pseudolikelihood section
+        if iszero(iter % 200) & record_ps
+            lpl = mean(log_pseudolikelihood(rbm, spikes))
+            @trace history iter lpl
+        end
+
+
     end
 
+    optim = Adam(lr_start, (9.0f-1, 999.0f-3), 1.0f-6) # (0f0, 999f-3), 1f-6
+    n = size(rbm.visible)[1]
+    if isa(rbm.visible.par, CUDA.CuArray)
+        vm = sample_from_inputs(rbm.visible, gpu(zeros(n, batchsize)))
+    else
+        vm = sample_from_inputs(rbm.visible, zeros(n, batchsize))
+    end
+    state, ps = pcd!(
+        rbm, spikes;
+        optim,
+        steps,
+        batchsize,
+        iters,
+        vm,
+        l2l1_weights=l2l1,
+        l1_weights=l1,
+        ϵv=ϵv, # 1f-1
+        ϵh=ϵh, # 0f0
+        damping=damping,
+        callback
+    )
 
-  end
-
-  optim = Adam(lr_start, (9.0f-1, 999.0f-3), 1.0f-6) # (0f0, 999f-3), 1f-6
-  n = size(rbm.visible)[1]
-  if isa(rbm.visible.par, CUDA.CuArray)
-    vm = sample_from_inputs(rbm.visible, gpu(zeros(n, batchsize)))
-  else
-    vm = sample_from_inputs(rbm.visible, zeros(n, batchsize))
-  end
-  state, ps = pcd!(
-    rbm, spikes;
-    optim,
-    steps,
-    batchsize,
-    iters,
-    vm,
-    l2l1_weights=l2l1,
-    l1_weights=l1,
-    ϵv=ϵv, # 1f-1
-    ϵh=ϵh, # 0f0
-    damping=damping,
-    callback
-  )
-
-  return history, Dict([
-    ("iters", iters),
-    ("batchsize", batchsize),
-    ("steps", steps),
-    ("lr_start", lr_start),
-    ("lr_stop", lr_stop),
-    ("decay_from", decay_from),
-    ("l2l1", l2l1),
-    ("l1", l1),
-    ("ϵv", ϵv),
-    ("ϵh", ϵh),
-    ("damping", damping),
-  ])
+    return history, Dict([
+        ("iters", iters),
+        ("batchsize", batchsize),
+        ("steps", steps),
+        ("lr_start", lr_start),
+        ("lr_stop", lr_stop),
+        ("decay_from", decay_from),
+        ("l2l1", l2l1),
+        ("l1", l1),
+        ("ϵv", ϵv),
+        ("ϵh", ϵh),
+        ("damping", damping),
+    ])
 end
 
 
@@ -163,7 +163,7 @@ end
 
 Training a StandardizedRBM from neuron activity. A wrapper of the pcd! method from
 RestrictedBoltzmannMachines.jl (see https://github.com/cossio/RestrictedBoltzmannMachines.jl/blob/master/src/train/pcd.jl).
-Adds geometricaly decaying learning rate, 
+Adds geometrically decaying learning rate
 
 
 ### Input
@@ -204,79 +204,79 @@ Using this function is not a guarentee of convergence. Proper convergence
 should be assessed systematicaly.
 """
 function training_wrapper_srbm(
-  srbm::RBM,
-  train_x::AbstractArray;
-  iters::Int=100000, # 100000
-  batchsize::Int=256, # 256
-  steps::Int=15, # 50
-  lr_start::Number=1.0f-3, # 1f-4
-  lr_stop::Number=1.e-4, # 1f-5
-  decay_from::Number=0.25, # 0.25
-  l2l1::Number=0.5, # 0.5
-  l1::Number=0, # 0
-  record_ps::Bool=false, # true
-  verbose::Bool=true # true
+    srbm::RBM,
+    train_x::AbstractArray;
+    iters::Int=100000, # 100000
+    batchsize::Int=256, # 256
+    steps::Int=15, # 50
+    lr_start::Number=1.0f-3, # 1f-4
+    lr_stop::Number=1.e-4, # 1f-5
+    decay_from::Number=0.25, # 0.25
+    l2l1::Number=0.5, # 0.5
+    l1::Number=0, # 0
+    record_ps::Bool=false, # true
+    verbose::Bool=true # true
 )
 
-  decay_g = (lr_stop / lr_start)^(1 / (iters * (1 - decay_from)))
-  history = MVHistory()
-  if verbose
-    pbar_id = uuid4()
-    pbar_name = "Training StateRBM"
-    @logmsg ProgressLevel pbar_name progress = nothing _id = pbar_id
-  end
-
-  function callback(; rbm, optim, state, iter, vm, vd, wd)
-    # learning rate section
-    lr = state.w.rule.eta
-    if iter > decay_from * iters
-      adjust!(state, lr * decay_g)
-    end
-    @trace history iter lr
-
-
-    # progress bar section
+    decay_g = (lr_stop / lr_start)^(1 / (iters * (1 - decay_from)))
+    history = MVHistory()
     if verbose
-      @logmsg ProgressLevel pbar_name progress = iter / iters _id = pbar_id
+        pbar_id = uuid4()
+        pbar_name = "Training StateRBM"
+        @logmsg ProgressLevel pbar_name progress = nothing _id = pbar_id
     end
 
-    # pseudolikelihood section
+    function callback(; rbm, optim, state, iter, vm, vd, wd)
+        # learning rate section
+        lr = state.w.rule.eta
+        if iter > decay_from * iters
+            adjust!(state, lr * decay_g)
+        end
+        @trace history iter lr
 
-    if iszero(iter % 200) & record_ps
-      lpl = mean(log_pseudolikelihood(rbm, train_x))
-      @trace history iter lpl
+
+        # progress bar section
+        if verbose
+            @logmsg ProgressLevel pbar_name progress = iter / iters _id = pbar_id
+        end
+
+        # pseudolikelihood section
+
+        if iszero(iter % 200) & record_ps
+            lpl = mean(log_pseudolikelihood(rbm, train_x))
+            @trace history iter lpl
+        end
+
+
     end
 
+    optim = Adam(lr_start, (9.0f-1, 999.0f-3), 1.0f-6) # (0f0, 999f-3), 1f-6
+    n = size(srbm.visible)[1]
+    if isa(srbm.visible.par, CUDA.CuArray)
+        vm = sample_from_inputs(srbm.visible, gpu(zeros(n, batchsize)))
+    else
+        vm = sample_from_inputs(srbm.visible, zeros(n, batchsize))
+    end
+    state, ps = pcd!(
+        srbm, train_x;
+        optim,
+        steps=steps,
+        batchsize,
+        iters=iters,
+        vm,
+        l2l1_weights=l2l1,
+        l1_weights=l1,
+        callback
+    )
 
-  end
-
-  optim = Adam(lr_start, (9.0f-1, 999.0f-3), 1.0f-6) # (0f0, 999f-3), 1f-6
-  n = size(srbm.visible)[1]
-  if isa(srbm.visible.par, CUDA.CuArray)
-    vm = sample_from_inputs(srbm.visible, gpu(zeros(n, batchsize)))
-  else
-    vm = sample_from_inputs(srbm.visible, zeros(n, batchsize))
-  end
-  state, ps = pcd!(
-    srbm, train_x;
-    optim,
-    steps=steps,
-    batchsize,
-    iters=iters,
-    vm,
-    l2l1_weights=l2l1,
-    l1_weights=l1,
-    callback
-  )
-
-  return history, Dict([
-    ("iters", iters),
-    ("batchsize", batchsize),
-    ("steps", steps),
-    ("lr_start", lr_start),
-    ("lr_stop", lr_stop),
-    ("decay_from", decay_from),
-    ("l2l1", l2l1),
-    ("l1", l1),
-  ])
+    return history, Dict([
+        ("iters", iters),
+        ("batchsize", batchsize),
+        ("steps", steps),
+        ("lr_start", lr_start),
+        ("lr_stop", lr_stop),
+        ("decay_from", decay_from),
+        ("l2l1", l2l1),
+        ("l1", l1),
+    ])
 end

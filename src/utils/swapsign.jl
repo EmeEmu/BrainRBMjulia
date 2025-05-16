@@ -10,6 +10,7 @@ function swap_hidden_sign(rbm::StandardizedRBM{<:Any,<:xReLU})
     end
     return _rbm
 end
+
 function swap_hidden_sign!(rbm::StandardizedRBM{<:Any,<:xReLU})
     rbm = swap_hidden_sign(rbm)
 end

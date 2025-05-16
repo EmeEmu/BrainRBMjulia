@@ -1,6 +1,6 @@
-name = "BrainRBMjulia"
-uuid = "0e978d05-b51d-4c0f-8b76-19ef46e5957b"
-authors = ["Mattéo Dommanget-Kott <matteo.d.kott@gmail.com>"]
+name = "BrainRBM"
+uuid = "839e1aa6-2547-4afa-a76a-d5481123c40a"
+authors = ["Guillaume Faye-Bédrin <guillaume.faye-bedrin@sorbonne-universite.fr>"]
 version = "0.2.0"
 
 [deps]
