@@ -18,7 +18,7 @@ function Makie.plot!(ip::IdPlotter{<:Tuple{AbstractArray,AbstractArray}})
   mmax = @lift(max(maximum($x), maximum($y)))
   range = @lift([$mmin, $mmax])
 
-  lines!(ip, range, range, color=ip.color)
+  lines!(ip, range, range, color=ip.id_color)
 
   if lx < ip.switch_thresh.val
     scatter!(ip, x, y, color=ip.color)
