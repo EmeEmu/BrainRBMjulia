@@ -2,21 +2,23 @@ module BrainRBMjulia
 
 import CUDA
 import HDF5
-using RestrictedBoltzmannMachines: RBM, StandardizedRBM, 
+using RestrictedBoltzmannMachines: RBM, StandardizedRBM,
   Binary, xReLU, pReLU, Gaussian,
   pcd!, initialize!, standardize,
   sample_from_inputs, sample_h_from_v, sample_v_from_h, sample_v_from_v,
   mean_from_inputs, mode_from_inputs, mean_h_from_v, mean_v_from_h,
   inputs_h_from_v, inputs_v_from_h,
-  free_energy,  log_pseudolikelihood,
-  AbstractLayer, var_from_inputs, gpu, cpu,
+  free_energy, log_pseudolikelihood,
+  AbstractLayer, var_from_inputs, var_h_from_v,
+  gpu, cpu,
   save_rbm, load_rbm
 export sample_from_inputs, sample_h_from_v, sample_v_from_h, sample_v_from_v,
   mean_from_inputs, mode_from_inputs, mean_h_from_v, mean_v_from_h,
-  free_energy, log_pseudolikelihood, var_from_inputs,
+  free_energy, log_pseudolikelihood, var_from_inputs, var_h_from_v,
+  inputs_h_from_v, inputs_v_from_h,
   gpu, cpu,
   save_rbm, load_rbm
-  
+
 using Statistics: mean, std, var, cov, cor, quantile
 export mean, std, var, cov, cor, quantile
 
