@@ -1,49 +1,71 @@
-@recipe(IdPlotter) do scene
-  Attributes(
-    id_color=:gray,
-    color=(:black, 0.75),
-    scale=log10,
-    cmap=:plasma,
-    bins=100,
-    switch_thresh=1.e3,
-    nrmse=nothing,
-  )
-end
-
-
-function Makie.plot!(ip::IdPlotter{<:Tuple{AbstractArray,AbstractArray}})
-  x, y = lift(vec, ip[1]), lift(vec, ip[2])
-  lx, ly = length(x.val), length(y.val)
-  mmin = @lift(min(minimum($x), minimum($y)))
-  mmax = @lift(max(maximum($x), maximum($y)))
-  range = @lift([$mmin, $mmax])
-
-  lines!(ip, range, range, color=ip.id_color)
-
-  if lx < ip.switch_thresh.val
-    scatter!(ip, x, y, color=ip.color)
-  else
-    h = hexbin!(ip, x, y, bins=ip.bins, colormap=ip.cmap, colorscale=ip.scale)
-    ip.colorrange = h.colorrange
-    ip.colormap = h.colormap
+begin
+  @recipe(IdPlotter) do scene
+    Attributes(
+      id_color=:gray,
+      color=(:black, 0.75),
+      scale=log10,
+      cmap=:plasma,
+      crange=Makie.automatic,
+      bins=100,
+      binminmax=nothing,
+      switch_thresh=1.e3,
+      nrmse=nothing,
+      nrmselabelvisible=true
+    )
   end
 
-  if isa(ip.nrmse.val, Nothing)
-    nrmse = @lift(nRMSE($x, $y))
-  else
-    nrmse = ip.nrmse
-  end
-  text!(
-    ip,
-    mmax,
-    mmin,
-    text=@lift("nRMSE = $(round($nrmse, sigdigits=3))"),
-    align=(:right, :bottom),
-    space=:data,
-  )
-  ip
-end
 
+  function Makie.plot!(ip::IdPlotter{<:Tuple{AbstractArray,AbstractArray}})
+    x, y = lift(vec, ip[1]), lift(vec, ip[2])
+    lx, ly = length(x.val), length(y.val)
+    if isa(ip.binminmax.val, Nothing)
+      mmin = @lift(min(minimum($x), minimum($y)))
+      mmax = @lift(max(maximum($x), maximum($y)))
+    else
+      mmin = @lift($(ip.binminmax)[1])
+      mmax = @lift($(ip.binminmax)[2])
+    end
+    range = @lift([$mmin, $mmax])
+    cellsize = @lift(($mmin - $mmax) / ip.bins.val)
+
+    lines!(ip, range, range, color=ip.color)
+
+    if lx < ip.switch_thresh.val
+      scatter!(ip, x, y, color=ip.color)
+    else
+      h = hexbin!(
+        ip,
+        x, y,
+        # bins=ip.bins,
+        cellsize=cellsize,
+        colormap=ip.cmap, colorscale=ip.scale, colorrange=ip.crange,
+      )
+      ip.colorrange = h.colorrange
+      ip.colormap = h.colormap
+    end
+
+    if isa(ip.nrmse.val, Nothing)
+      nrmse = @lift(nRMSE($x, $y))
+    else
+      nrmse = ip.nrmse
+    end
+    if ip.nrmselabelvisible.val
+      label = @lift("nRMSE = $(round($nrmse, sigdigits=3))")
+    else
+      label = @lift("$(round($nrmse, sigdigits=3))")
+    end
+    text!(
+      ip,
+      mmax,
+      mmin,
+      text=label,
+      align=(:right, :bottom),
+      space=:data,
+    )
+    ip
+  end
+
+end
 
 function multi_id(data::AbstractArray; panelsize::Int=100, xlabel="X", ylabel="Y", layout::Symbol=:br, loglog=false, switch_thresh=1.e3)
   n = size(data, 1)
