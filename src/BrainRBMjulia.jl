@@ -34,6 +34,7 @@ using ValueHistories: MVHistory, @trace
 using Combinatorics
 using HDF5: h5open, create_group, read, attrs
 using LinearAlgebra: diagind
+using StatsBase: fit, Histogram
 
 
 include("rbms.jl")
