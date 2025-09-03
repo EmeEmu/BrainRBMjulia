@@ -1,13 +1,34 @@
+"""
+    str_type(obj)
+
+Return the base type name of `obj` without type parameters. Useful when
+storing objects in HDF5 attributes.
+"""
 function str_type(obj::Any)
   return split(string(typeof(obj)), "{")[1]
 end
 
+"""
+    c(x::BitMatrix)
+    c(x::Matrix)
+
+Convert matrices to a storage-friendly format. Bit matrices are converted to
+`UInt8` while other matrices are returned unchanged.
+"""
 function c(x::BitMatrix)
   return UInt8.(x)
 end
 function c(x::Matrix)
   return x
 end
+
+"""
+    uc(x::Matrix{UInt8})
+    uc(x::Matrix)
+
+Inverse operation of [`c`](@ref). Convert matrices read from disk back to
+their logical type.
+"""
 function uc(x::Matrix{UInt8})
   return Bool.(x)
 end
@@ -15,12 +36,23 @@ function uc(x::Matrix)
   return x
 end
 
+"""
+    layer_to_hdf5Group(grp::HDF5.Group, layer::AbstractLayer)
+
+Store layer parameters and metadata into the HDF5 group `grp`.
+"""
 function layer_to_hdf5Group(grp::HDF5.Group, layer::AbstractLayer)
   attrs(grp)["type"] = str_type(layer)
   attrs(grp)["size"] = string(size(layer))
   grp["params"] = layer.par
 end
 
+"""
+    rbm_to_hdf5Group(rbm_grp::HDF5.Group, rbm; comment::String="")
+
+Serialize `rbm` into the group `rbm_grp`. Works for both [`RBM`] and
+[`StandardizedRBM`] models.
+"""
 function rbm_to_hdf5Group(rbm_grp::HDF5.Group, rbm::StandardizedRBM; comment::String="")
   attrs(rbm_grp)["type"] = str_type(rbm)
   attrs(rbm_grp)["comment"] = comment
@@ -67,6 +99,11 @@ end;
 # construct_layer(AbstractString{"RestrictedBoltzmannMachines.Binary"}, par::AbstractArray) = Binary(par)
 # construct_layer(AbstractString{"RestrictedBoltzmannMachines.Gaussian"}, par::AbstractArray) = Gaussian(par)
 # construct_layer(AbstractString{"RestrictedBoltzmannMachines.xReLU"}, par::AbstractArray) = xReLU(par)
+"""
+    construct_layer(layer_type::AbstractString, par::AbstractArray)
+
+Rebuild a layer from its string type name and parameter array.
+"""
 function construct_layer(layer_type::AbstractString, par::AbstractArray)
   if occursin("Binary", layer_type)
     return Binary(par)
@@ -79,6 +116,12 @@ function construct_layer(layer_type::AbstractString, par::AbstractArray)
   end
 end
 
+"""
+    rbm_from_hdf5Group(grp::HDF5.Group)
+
+Reconstruct an [`RBM`] or [`StandardizedRBM`] previously stored with
+[`rbm_to_hdf5Group`](@ref).
+"""
 function rbm_from_hdf5Group(grp::HDF5.Group)
   # vlayer_type = attrs(grp["VisibleLayer"])["type"]
   # v_layer = getfield(BrainRBMjulia, Symbol(vlayer_type))(read(grp["VisibleLayer/params"]))
@@ -109,6 +152,12 @@ function rbm_from_hdf5Group(grp::HDF5.Group)
   return rbm
 end
 
+"""
+    dic_to_hdf5Group(grp::HDF5.Group, dic::Dict; comment::String="")
+
+Write all key-value pairs of `dic` into `grp`, storing `comment` as an
+attribute.
+"""
 function dic_to_hdf5Group(grp::HDF5.Group, dic::Dict; comment::String="")
   attrs(grp)["comment"] = comment
 
@@ -116,6 +165,12 @@ function dic_to_hdf5Group(grp::HDF5.Group, dic::Dict; comment::String="")
     grp[k] = dic[k]
   end
 end
+
+"""
+    dic_from_hdf5Group(grp::HDF5.Group) -> Dict
+
+Read all datasets of `grp` into a dictionary.
+"""
 function dic_from_hdf5Group(grp::HDF5.Group)
   dic = Dict()
 
@@ -125,6 +180,11 @@ function dic_from_hdf5Group(grp::HDF5.Group)
   return dic
 end
 
+"""
+    datasplit_to_hdf5Group(grp::HDF5.Group, split::DatasetSplit; comment::String="")
+
+Store a [`DatasetSplit`] in the group `grp`.
+"""
 function datasplit_to_hdf5Group(grp::HDF5.Group, split::DatasetSplit; comment::String="")
   attrs(grp)["comment"] = comment
 
@@ -133,6 +193,13 @@ function datasplit_to_hdf5Group(grp::HDF5.Group, split::DatasetSplit; comment::S
   grp["train_inds"] = split.train_inds
   grp["valid_inds"] = split.valid_inds
 end
+
+"""
+    datasplit_from_hdf5Group(grp::HDF5.Group) -> DatasetSplit
+
+Load a [`DatasetSplit`] previously saved with
+[`datasplit_to_hdf5Group`](@ref).
+"""
 function datasplit_from_hdf5Group(grp::HDF5.Group)
   return DatasetSplit(
     grp["train_inds"][],
@@ -142,6 +209,11 @@ function datasplit_from_hdf5Group(grp::HDF5.Group)
   )
 end
 
+"""
+    generated_to_hdf5Group(grp::HDF5.Group, gen::GeneratedData; comment::String="")
+
+Write a [`GeneratedData`] object to `grp`.
+"""
 function generated_to_hdf5Group(grp::HDF5.Group, gen::GeneratedData; comment::String="")
   attrs(grp)["comment"] = comment
 
@@ -152,6 +224,12 @@ function generated_to_hdf5Group(grp::HDF5.Group, gen::GeneratedData; comment::St
   grp["nstep"] = gen.nstep
   grp["nthermal"] = gen.nthermal
 end
+
+"""
+    generated_from_hdf5Group(grp::HDF5.Group) -> GeneratedData
+
+Reconstruct [`GeneratedData`] from the datasets stored in `grp`.
+"""
 function generated_from_hdf5Group(grp::HDF5.Group)
   return GeneratedData(
     uc(grp["v"][]),
@@ -291,6 +369,14 @@ end
 function load_brainRBM_eval(filenames::Vector{String}; ignore="")
   return [load_brainRBM_eval(f; ignore=ignore) for f in filenames]
 end
+"""
+    rank_brainRBMs(paths::Vector{String}; ignore="", bestn=-1)
+    rank_brainRBMs(paths::Vector{String}, norm::Function; ignore="", bestn=-1)
+
+Rank saved RBM models according to their evaluation metrics. The default
+metric uses `nRMSEs_L4`; a custom `norm` function can be supplied. If
+`bestn` is positive, only that many top-performing models are returned.
+"""
 function rank_brainRBMs(paths::Vector{String}; ignore="", bestn=-1)
   evals = load_brainRBM_eval(paths; ignore=ignore)
   norms = nRMSEs_L4(evals)
@@ -506,8 +592,10 @@ end
 
 
 """
-You can pass a Voxel_Grid_Object to this function. And this function will save it locally
-as an HDF5 file. The resulting HDF5 file will contain all of the data of the original Voxel_Grid_Object.
+    dump_voxel(filename::String, voxel; comment::String="") -> String
+
+Store a `voxel` grid object to `filename` in HDF5 format and return the
+`filename`.
 """
 function dump_voxel(filename::String, voxel::Any; comment::String="")
   fid = h5open(filename, "cw")

@@ -1,3 +1,11 @@
+"""
+    VoxelGrid
+
+Spatial discretization of neural coordinates into a 3-D voxel grid.
+
+The structure stores voxel geometry as well as, for each subject,
+the mapping from neurons to voxels and their aggregated activities.
+"""
 struct VoxelGrid
   origins::Vector{Float64}
   ends::Vector{Float64}
@@ -98,6 +106,12 @@ end
 
 
 
+"""
+    grid_from_points(coords; size=[20,20,20], pad=0.1)
+
+Compute the bounding box of `coords` expanded by a padding fraction
+`pad`, returning the origin and end coordinates.
+"""
 function grid_from_points(coords::Matrix{Float64}; size::Vector{Float64}=[20.0, 20.0, 20.0], pad::Float64=0.1)
   maxs = maximum(coords, dims=1)
   mins = minimum(coords, dims=1)
@@ -107,10 +121,22 @@ function grid_from_points(coords::Matrix{Float64}; size::Vector{Float64}=[20.0, 
   ends = maxs .+ padding
   return orgs[1, :], ends[1, :]
 end
+"""
+    grid_from_points(coords::Vector{Matrix{Float64}}; size=[20,20,20], pad=0.1)
+
+Convenience wrapper of [`grid_from_points`](@ref) for multiple coordinate
+sets.
+"""
 function grid_from_points(coords::Vector{Matrix{Float64}}; size::Vector{Float64}=[20.0, 20.0, 20.0], pad::Float64=0.1)
   return grid_from_points(vcat(coords...); size, pad)
 end
 
+"""
+    project_to_grid(coords, size, origin)
+
+Project continuous coordinates onto voxel indices given voxel size and
+origin.
+"""
 function project_to_grid(coords::Matrix{Float64}, size::Vector{Float64}, origin::Vector{Float64})
   return Int.(round.((coords .- origin') ./ size'))
 end
@@ -118,6 +144,12 @@ function project_to_grid(coords::Vector{Matrix{Float64}}, size::Vector{Float64},
   return [project_to_grid(c, size, origin) for c in coords]
 end
 
+"""
+    populate_voxels(vox_inds, ns)
+
+Populate an array of voxel containers given projected indices `vox_inds`
+and grid dimensions `ns`. Returns the filled voxels and their capacities.
+"""
 function populate_voxels(vox_inds::Matrix{Int64}, ns::Vector{Int})
   VOX = Array{Vector{Int}}(undef, ns...)
   for i in 1:ns[1], j in 1:ns[2], k in 1:ns[3]
@@ -147,11 +179,23 @@ function populate_voxels(vox_inds::Vector{Matrix{Int64}}, ns::Vector{Int})
   return VOX, CAPACITY
 end
 
+"""
+    select_voxels(CAPACITY; thresh=2)
+
+Return indices of voxels whose capacity exceeds `thresh` for all
+individuals.
+"""
 function select_voxels(CAPACITY::Array{Int64,4}; thresh::Int=2)
   goods = sum(CAPACITY .>= thresh, dims=1)[1, :, :, :] .== size(CAPACITY, 1)
   return findall(goods)
 end
 
+"""
+    build_voxels(VOX, goods, acts)
+
+Assemble voxel compositions, mean activities and neuron-to-voxel
+affiliations from raw voxel contents `VOX`.
+"""
 function build_voxels(
   VOX::Array{Vector{Int64},4},
   goods::Vector{CartesianIndex{3}},
@@ -173,6 +217,12 @@ function build_voxels(
 end
 
 
+"""
+    vox_to_neur_activity(t, indv, vox)
+
+Convert voxel activities back to neuronal activities for individual
+`indv` at time `t`.
+"""
 function vox_to_neur_activity(t::Int, indv::Int, vox::VoxelGrid)
   act = vox.voxel_activities[indv][t, :]
   aff = vox.neuron_affiliation[indv]

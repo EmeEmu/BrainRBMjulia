@@ -1,3 +1,12 @@
+"""
+    neuron2dscatter(x, y, v; cmap=:seismic, radius=2, range=nothing,
+                    edgewidth=0.5, edgecolor=(:black, 0.1))
+
+Scatter plot of neuron positions coloured by value.
+
+`x` and `y` are coordinate vectors and `v` specifies the colour of each
+point. The plot can be customised via the provided keyword arguments.
+"""
 @recipe(Neuron2DScatter) do scene
     Attributes(
         cmap=:seismic,
@@ -38,6 +47,11 @@ function Makie.plot!(n2ds::Neuron2DScatter{<:Tuple{Vector,Vector,Union{Vector,Bi
     n2ds
 end
 
+"""
+    OrthogonalView
+
+Container holding axes for three orthogonal 2‑D projections.
+"""
 struct OrthogonalView
     grid::GridLayout
     axXY::Axis
@@ -45,6 +59,15 @@ struct OrthogonalView
     axXZ::Axis
 end
 
+"""
+    orthogonal_view_layout(pos, coords; size=200, constrain=:width)
+
+Construct a layout with three orthogonal views of 3‑D coordinates.
+
+`pos` specifies the parent grid position. The layout size is determined by
+`size` and either the width or height is constrained depending on
+`constrain`.
+"""
 function orthogonal_view_layout(pos::GridPosition, coords; size=200, constrain::Symbol=:width)
     spanx, spany, spanz = span_dims(coords)
     spanX, spanY = spanx + spanz, spany + spanz
@@ -79,6 +102,15 @@ function orthogonal_view_layout(pos::GridPosition, coords; size=200, constrain::
     return OrthogonalView(ga, axXY, axYZ, axXZ)
 end
 
+"""
+    neuronorthoscatter(OV, coords, vals; kwargs...)
+
+Plot three orthogonal projections of neuronal coordinates coloured by
+`vals`.
+
+`OV` is an [`OrthogonalView`](@ref) returned by
+[`orthogonal_view_layout`](@ref).
+"""
 function neuronorthoscatter(OV::OrthogonalView, coords, vals; cmap=:seismic, range=nothing, edgewidth=0.5, edgecolor=(:black, 0.1))
     neuron2dscatter!(OV.axXY, coords[:, 1], coords[:, 2], vals, cmap=cmap, range=range, edgewidth=edgewidth, edgecolor=edgecolor)
     neuron2dscatter!(OV.axYZ, coords[:, 3], coords[:, 2], vals, cmap=cmap, range=range, edgewidth=edgewidth, edgecolor=edgecolor)

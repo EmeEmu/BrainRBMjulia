@@ -1,9 +1,19 @@
+"""
+    MomentsAggregate
+
+Collects moments for generated, training and validation datasets.
+"""
 struct MomentsAggregate
     gen::Dict{String,Matrix}
     train::Dict{String,Matrix}
     valid::Dict{String,Matrix}
 end
 
+"""
+    SimpleMomentsAggregate
+
+Moments for generated data and a single comparison dataset.
+"""
 struct SimpleMomentsAggregate
     gen::Dict{String,Matrix}
     data::Dict{String,Matrix}
@@ -172,6 +182,12 @@ end
 
 
 
+"""
+    reconstruction_likelihood(rbm, valid_spikes, train_spikes; eps=1e-6)
+
+Normalized log-likelihood of `valid_spikes` under `rbm` relative to an
+independent model fitted from `train_spikes`.
+"""
 function reconstruction_likelihood(rbm::Union{RBM,StandardizedRBM}, valid_spikes::AbstractArray, train_spikes::AbstractArray; eps=1.e-6)
     data = valid_spikes
     mu = reconstruct(rbm, data)

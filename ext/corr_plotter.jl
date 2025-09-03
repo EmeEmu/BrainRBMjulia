@@ -1,3 +1,13 @@
+"""
+    corrplotter(x; cmap=:seismic, order=nothing)
+
+Visualise correlation matrices or raw data as a heatmap.
+
+If `x` is square it is assumed to be a correlation matrix, otherwise the
+correlation is computed columnwise. The optional `order` argument can be a
+permutation vector or the string `"hier"` to cluster variables
+hierarchically.
+"""
 @recipe(CorrPlotter) do scene
     Attributes(
         cmap=:seismic,
@@ -28,6 +38,16 @@ function Makie.plot!(cp::CorrPlotter{<:Tuple{AbstractArray}})
     cp
 end
       
+"""
+    couplingplotter(J; cmap=:seismic, order=nothing, colorquantile=0.95)
+
+Plot a symmetric matrix of couplings with diverging colours.
+
+The colour scale is set symmetrically around zero based on the
+`colorquantile` of the matrix values. Entries can optionally be reordered
+either by a permutation vector or by hierarchical clustering via the
+`"hier"` option.
+"""
 @recipe(CouplingPlotter) do scene
     Attributes(
         cmap=:seismic,

@@ -1,3 +1,9 @@
+"""
+    rmse(y_true, y_pred)
+
+Root mean squared error between `y_true` and `y_pred`.
+Accepts vectors or reshaped arrays of matching size.
+"""
 function rmse(y_true::Vector, y_pred::Vector)
     return sqrt.(sum((y_true .- y_pred).^2) / length(y_true))
 end
@@ -5,6 +11,15 @@ function rmse(y_true::Base.ReshapedArray, y_pred::Base.ReshapedArray)
     return sqrt.(sum((y_true .- y_pred).^2) / length(y_true))
 end
 
+"""
+    nRMSE(X, Y; X_opt=nothing, Y_opt=nothing, max_nb=10^8)
+
+Normalized RMSE between arrays `X` and `Y`.
+
+The score is calibrated by shuffling `X` and `Y` and optionally by
+comparing against optimal predictions `X_opt` and `Y_opt`.
+Large inputs are subsampled to `max_nb` elements for efficiency.
+"""
 function nRMSE(X::AbstractArray, Y::AbstractArray; X_opt::Union{Nothing,AbstractArray}=nothing, Y_opt::Union{Nothing,AbstractArray}=nothing, max_nb=10^8)
     @assert size(Y) == size(X)
     if !isa(X_opt, Nothing)
@@ -60,6 +75,12 @@ function nRMSE(X::AbstractArray, Y::AbstractArray; X_opt::Union{Nothing,Abstract
     return 1 - (RMSE_ord - RMSE_shuf) / (RMSE_opt - RMSE_shuf)
 end
 
+"""
+    nRMSE_from_moments(M::MomentsAggregate)
+
+Compute the nRMSE for standard moment aggregates stored in `M`.
+Returns a dictionary keyed by moment names.
+"""
 function nRMSE_from_moments(M::MomentsAggregate)
     stats = ["<v>","<h>","<vh>","<vv> - <v><v>","<hh> - <h><h>"]
     d = Dict()
@@ -68,6 +89,12 @@ function nRMSE_from_moments(M::MomentsAggregate)
     end
     return d
 end
+"""
+    nRMSE_from_moments(M::SimpleMomentsAggregate)
+
+Version of `nRMSE_from_moments` for aggregates that only store data and
+generated moments.
+"""
 function nRMSE_from_moments(M::SimpleMomentsAggregate)
     stats = ["<v>","<h>","<vh>","<vv> - <v><v>","<hh> - <h><h>"]
     d = Dict()
@@ -77,6 +104,12 @@ function nRMSE_from_moments(M::SimpleMomentsAggregate)
     return d
 end
 
+"""
+    nRMSEs_Lp(nrmses::Dict, p::Int=1; max::Bool=false)
+
+Combine multiple nRMSE scores using an Lᵖ norm.
+When `max=true`, treat scores as already normalized to `1`.
+"""
 function nRMSEs_Lp(nrmses::Dict, p::Int=1; max::Bool=false)
     if max
         v = ones(length(nrmses))
@@ -92,6 +125,12 @@ function nRMSEs_Lp(nrmses::Vector{Dict{Any, Any}}, p::Int=1; max::Bool=false)
         return [nRMSEs_Lp(ns, p) for ns in nrmses]
     end
 end
+
+"""
+    nRMSEs_L4(nrmses; max=false)
+
+Convenience wrapper of [`nRMSEs_Lp`](@ref) with `p = 4`.
+"""
 function nRMSEs_L4(nrmses::Union{Dict,Vector{Dict{Any, Any}}} ; max::Bool=false)
     return nRMSEs_Lp(nrmses, 4; max=max)
 end
