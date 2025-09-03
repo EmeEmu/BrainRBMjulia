@@ -1,3 +1,13 @@
+"""
+    state_sampling(rbm::Union{RBM,StandardizedRBM},
+                   srbm::Union{RBM,StandardizedRBM},
+                   spikes; n::Int=50)
+    state_sampling(srbm::Union{RBM,StandardizedRBM}, hs; n::Int=50)
+
+Sample discrete state labels from a state RBM. The first method takes raw
+spike trains and a parent RBM, while the second operates directly on hidden
+activity `hs`.
+"""
 function state_sampling(
   rbm::Union{RBM,StandardizedRBM},
   srbm::Union{RBM,StandardizedRBM},
@@ -18,7 +28,16 @@ function state_sampling(
   rs = decode_binary(rb)
   return rs
 end
+"""
+    state_distrib(rs::Vector{Int64}, S::Int)
+    state_distrib(rs::Matrix{Int64}, S::Int)
+    state_distrib(rbm::Union{RBM,StandardizedRBM},
+                  srbm::Union{RBM,StandardizedRBM}, spikes; n::Int=50)
+    state_distrib(srbm::Union{RBM,StandardizedRBM}, hs; n::Int=50)
 
+Compute the empirical distribution over `S` states given sampled labels or
+by sampling states from RBM models.
+"""
 function state_distrib(rs::Vector{Int64}, S::Int)
   b = fit(Histogram, rs, 0:1:S).weights
   p = b ./ sum(b)
@@ -46,17 +65,30 @@ function state_distrib(
   rs = state_sampling(srbm, hs; n)
   return state_distrib(rs, Nstates_per_Nbits(length(srbm.hidden.θ)))
 end
+"""
+    state_max(ps::Matrix{Float64})
 
+Return the most probable state at each time step along with its probability.
+"""
 function state_max(ps::Matrix{Float64})
   states = [c[1] for c in argmax(ps, dims=1)[1, :]]
   probs = [ps[states[t], t] for t in 1:size(ps, 2)]
   return states .- 1, probs
 end
+"""
+    state_proba(ps::Matrix{Float64})
 
+Mean probability of each state across time.
+"""
 function state_proba(ps::Matrix{Float64})
   return mean(ps, dims=2)[:, 1]
 end
 
+"""
+    state_transition(ps::Matrix{Float64})
+
+Estimate the transition matrix between successive state distributions.
+"""
 function state_transition(ps::Matrix{Float64})
   T = sum([ps[:, t] * ps[:, t+1]' for t in 1:size(ps, 2)-1])
   T ./= sum(T, dims=2)
@@ -64,6 +96,12 @@ function state_transition(ps::Matrix{Float64})
 end
 
 
+"""
+    mean_v_by_s(rbm, srbm, spikes; n::Int=50, steps::Int=1)
+
+Estimate mean and standard deviation of visible units conditioned on sampled
+states.
+"""
 function mean_v_by_s(
   rbm::Union{RBM,StandardizedRBM},
   srbm::Union{RBM,StandardizedRBM},
