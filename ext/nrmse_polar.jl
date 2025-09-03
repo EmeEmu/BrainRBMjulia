@@ -1,8 +1,17 @@
+"""
+    polarnrmseplotter(metrics; origin=(0,0), markersize=5, linewidth=1,
+                      color=:black, make_axis=true, heights=[0.2,0.7,1.2])
+
+Draw a polar plot of normalised root mean squared errors (nRMSE).
+
+`metrics` is a dictionary mapping labels to nRMSE values in `[0,1]`.
+Values are mapped radially and connected to form a closed polygon.
+"""
 @recipe(PolarNRMSEPlotter) do scene
-  Attributes(
-    origin=(0, 0),
-    markersize=5,
-    linewidth=1,
+    Attributes(
+        origin=(0, 0),
+        markersize=5,
+        linewidth=1,
     color=:black,
     make_axis=true,
     heights=[0.2, 0.7, 1.2],
@@ -79,11 +88,22 @@ function Makie.plot!(pp::PolarNRMSEPlotter{<:Tuple{Dict}})
 end
 
 
+"""
+    multipolarnrmseplotter(evals; origin=(0,0), markersize=5, linewidth=1,
+                           cmap=:RdYlGn_9, cmap_max=1.0, default_color=:black,
+                           heights=[0.2,0.7,1.2])
+
+Overlay several polar nRMSE plots.
+
+`evals` may be a vector of dictionaries, each describing one model. When
+provided with a second vector of normalisation values, colours are chosen
+from `cmap` according to `cmap_max`.
+"""
 @recipe(multiPolarNRMSEPlotter) do scene
-  Attributes(
-    origin=(0, 0),
-    markersize=5,
-    linewidth=1,
+    Attributes(
+        origin=(0, 0),
+        markersize=5,
+        linewidth=1,
     cmap=:RdYlGn_9,
     cmap_max=1.0,
     default_color=:black,
@@ -137,6 +157,12 @@ end
 
 Makie.convert_arguments(P::Type{<:PolarNRMSEPlotter}, path::String) = (load_brainRBM_eval(path),)
 
+"""
+    Makie.convert_arguments(::Type{<:multiPolarNRMSEPlotter}, paths::Vector{String})
+
+Load evaluations and normalisation factors from `paths` for use with
+[`multipolarnrmseplotter`](@ref).
+"""
 function Makie.convert_arguments(P::Type{<:multiPolarNRMSEPlotter}, paths::Vector{String})
   evals = load_brainRBM_eval(paths)
   norm = nRMSEs_L4(evals) ./ nRMSEs_L4(evals; max=true)
