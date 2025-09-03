@@ -85,7 +85,7 @@ each column of `spikes` and flattening the result into a two-dimensional array.
 - `n`: number of hidden samples per input example.
 
 # Returns
-An array of size `(size(rh,1), size(rh,2)*size(rh,3))` containing the sampled
+An array of size `(hidden unis, time*n)` containing the sampled
 hidden activations.
 """
 function build_training_h(

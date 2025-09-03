@@ -13,12 +13,13 @@ The codebase is organized into two main folders:
   * `saving.jl` and `extendables.jl` offer serialization helpers and callbacks.
   * `utils/` contains helper modules for binary encodings, coupling approximations, dataset handling, error metrics, reordering, and voxel manipulation.
 * `ext/` – [Makie](https://makie.juliaplots.org/) extensions and plotting recipes.
-  * `BrainMakieExt.jl` registers Makie methods used by the package.
-  * Additional files provide recipes for brain projections, correlation heatmaps, RBM diagrams, and other visual diagnostics.
+  * registers Makie recipes for brain projections, correlation heatmaps, RBM diagrams, and other visual diagnostics.
 
 An `example/` directory illustrates how to train models and visualize results.
 
 ## Usage
+
+This package was developped for Julia 1.11.
 
 Add the package in a Julia environment and load it with:
 
@@ -29,14 +30,3 @@ using BrainRBMjulia
 ```
 
 Most workflows revolve around building `BrainRBM` models, training on calcium imaging datasets, and using the Makie extensions for visual exploration.
-
-## Testing
-
-Run the package tests with:
-
-```julia
-julia --project -e 'using Pkg; Pkg.test()'
-```
-
-The test suite exercises sampling, map construction, serialization, and plotting utilities.
-
