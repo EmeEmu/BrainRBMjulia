@@ -1,3 +1,10 @@
+"""
+    BoxAround
+
+Axis-aligned bounding box enclosing a set of coordinates. Stores limits,
+grid size and origin, and provides constructors from raw coordinates or
+explicit parameters.
+"""
 struct BoxAround
   lims::Matrix{Float64}
   size::Vector{Int}
@@ -15,6 +22,13 @@ struct BoxAround
   end
 end
 
+"""
+    ball_mask(R::Int)
+
+Generate 3‑D spherical masks of radius `R`. Returns a pair of arrays: a
+`Float64` mask with `NaN` outside the ball and an integer mask of ones and
+zeros.
+"""
 function ball_mask(R::Int)
   bs = 2 * R + 1
   ballnan = fill!(Array{Float64}(undef, bs, bs, bs), NaN)
@@ -34,10 +48,22 @@ function ball_mask(R::Int)
   return ballnan, ballint
 end
 
+"""
+    int_coords(coords, box::BoxAround)
+
+Convert continuous coordinates to integer indices within `box`.
+"""
 function int_coords(coords::AbstractMatrix, box::BoxAround)
   return round.(Int, coords .- box.origin')
 end
 
+"""
+    create_map(coords, weights, box; R=4, verbose=true)
+
+Rasterise weighted points at `coords` into a 3‑D grid defined by `box` using a
+spherical kernel of radius `R`. If `weights` is a matrix, a stack of maps is
+returned.
+"""
 function create_map(coords::AbstractMatrix, weights::AbstractVector, box::BoxAround; R::Int=4, verbose::Bool=true)
   _, ballint = ball_mask(R)
   cint = int_coords(coords, box)
@@ -64,15 +90,31 @@ function create_map(coords::AbstractMatrix, weights::AbstractMatrix, box::BoxAro
   return maps
 end
 
+"""
+    map_finite(map; val=0)
+
+Replace `Inf`, `-Inf` and `NaN` values in `map` with `val`.
+"""
 function map_finite(map::AbstractArray; val::Real=0)
   return replace(map, Inf => val, -Inf => val, NaN => val)
 end
+
+"""
+    map_finite!(map; val=0)
+
+In-place version of [`map_finite`](@ref).
+"""
 function map_finite!(map::AbstractArray; val::Real=0)
   return replace!(map, Inf => val, -Inf => val, NaN => val)
 end
 
 
 # FFT smoothing interpolation ________________________________________________
+"""
+    gaussian3D(box::BoxAround, σ::Real=1)
+
+Generate a 3‑D Gaussian kernel matching the dimensions of `box`.
+"""
 function gaussian3D(box::BoxAround, σ::Real=1)
   x0, y0, z0 = box.size .÷ 2
   gauss(x, y, z) = exp(-((x - x0)^2 + (y - y0)^2 + (z - z0)^2) / (2 * σ^2))
@@ -81,6 +123,12 @@ function gaussian3D(box::BoxAround, σ::Real=1)
   return G
 end
 
+"""
+    interpolate_map(coords, map, box)
+    interpolate_map(coords, maps, box; verbose=true)
+
+Sample values from a single map or a stack of maps at given `coords`.
+"""
 function interpolate_map(coords::AbstractMatrix, map::AbstractArray{T,3}, box::BoxAround) where {T<:AbstractFloat}
   cint = int_coords(coords, box)
   return [map[cint[i, :]...] for i in 1:size(cint, 1)]
@@ -95,6 +143,12 @@ function interpolate_map(coords::AbstractMatrix, maps::AbstractArray{T,4}, box::
   return w
 end
 
+"""
+    smooth_map(map, box, σ)
+    smooth_map(maps, box, σ; verbose=true)
+
+Smooth map(s) with a Gaussian kernel using FFT convolution.
+"""
 function smooth_map(map::AbstractArray{T,3}, box::BoxAround, σ::Real) where {T<:AbstractFloat}
   K = gaussian3D(box, σ)
   K ./= sum(K)
@@ -124,20 +178,35 @@ end
 
 
 # ball gaussian interpolation ________________________________________________
+"""
+    nan_mean(x, w)
+
+Weighted sum of `x` ignoring non-finite values, using weights `w`.
+"""
 function nan_mean(x::AbstractArray, w::AbstractArray)
   y = x .* w
   idx = isfinite.(y)
   return sum(y[idx])
 end
 
+"""
+    region(map, xyz, R)
+
+Extract cubic region of radius `R` around `xyz` from `map`.
+"""
 function region(map::AbstractArray{T,3}, xyz::Vector{Int}, R::Int) where {T<:AbstractFloat}
   x, y, z = xyz
   return map[x-R:x+R, y-R:y+R, z-R:z+R]
 end
 
+"""
+    regionmean(map, xyz, K, R)
+    regionmean(map, xyzs, K, R)
+    regionmean(maps, xyzs, K, R; verbose=true)
+
+Average regions of `map` or `maps` weighted by kernel `K`.
+"""
 function regionmean(map::AbstractArray{T,3}, xyz::Vector{Int}, K::AbstractArray{T,3}, R::Int) where {T<:AbstractFloat}
-  # x,y,z = xyz
-  # return nan_mean(map[x-R:x+R, y-R:y+R, z-R:z+R], K)
   return nan_mean(region(map, xyz, R), K)
 end
 function regionmean(map::AbstractArray{T,3}, xyz::Matrix{Int}, K::AbstractArray{T,3}, R::Int) where {T<:AbstractFloat}
@@ -154,6 +223,11 @@ function regionmean(maps::AbstractArray{T,4}, xyz::Matrix{Int}, K::AbstractArray
   return w
 end
 
+"""
+    ball_gaussian3D(σ=2, r=2)
+
+Construct a Gaussian kernel restricted to a ball of radius `r`.
+"""
 function ball_gaussian3D(σ::Real=2, r::Int=2)
   # σ=gaussian std  ;  r=ball radius
 
@@ -184,6 +258,12 @@ function ball_gaussian3D(σ::Real=2, r::Int=2)
   return Float32.(G ./ sum(bm))
 end
 
+"""
+    interpolation(maps::AbstractArray{T,4}, xyz, σ, R, box; verbose=true)
+    interpolation(map::AbstractArray{T,3}, xyz, σ, R, box; verbose=true)
+
+Interpolate map values at positions `xyz` using a ball-Gaussian kernel.
+"""
 function interpolation(maps::AbstractArray{T,4}, xyz::AbstractMatrix, σ::Real, R::Int, box::BoxAround; verbose=true) where {T<:AbstractFloat}
   K = ball_gaussian3D(σ, R)
   L = size(K, 1)
@@ -201,6 +281,18 @@ end
 # ball gaussian interpolation ________________________________________________
 
 
+"""
+    Maps
+
+Container for spatial maps and associated interpolation parameters.
+Fields:
+- `scaling` – spatial scaling factor
+- `box`     – bounding [`BoxAround`](@ref)
+- `radius`  – kernel radius in original units
+- `σ`       – Gaussian standard deviation in original units
+- `maps`    – stored maps
+- `β`       – optimal bias factors
+"""
 struct Maps
   scaling::Float64
   box::BoxAround
@@ -299,6 +391,13 @@ struct Maps
 
 end
 
+"""
+    dump_maps(grp::HDF5.Group, M::Maps; comment="")
+    dump_maps(fid::HDF5.File, M::Maps, name; comment="")
+    dump_maps(filename::String, M::Maps, name; comment="") -> String
+
+Persist [`Maps`] to HDF5 storage.
+"""
 function dump_maps(grp::HDF5.Group, M::Maps; comment::String="")
   attrs(grp)["comment"] = comment
   grp["scaling"] = M.scaling
@@ -323,6 +422,11 @@ function dump_maps(filename::String, M::Maps, name::String; comment::String="")
 end
 
 
+"""
+    interpolation(M::Maps, coords; verbose=true)
+
+Interpolate stored maps at `coords` and apply bias factors.
+"""
 function interpolation(M::Maps, coords::AbstractMatrix; verbose=true)
   A = interpolation(
     M.maps,
@@ -336,6 +440,12 @@ function interpolation(M::Maps, coords::AbstractMatrix; verbose=true)
 end
 
 
+"""
+    find_optimal_bias(trueX, newX; minbias=0, maxbias=10, stepbias=0.1)
+
+Return the multiplicative bias minimizing nRMSE between `trueX` and `newX`.
+Works on vectors and matrices.
+"""
 function find_optimal_bias(trueX::AbstractVector, newX::AbstractVector; minbias::Real=0, maxbias::Real=10, stepbias::Real=0.1)
   opt_bias(b) = nRMSE(trueX, newX * b)
   biases = minbias:stepbias:maxbias
@@ -353,10 +463,20 @@ end
 
 
 
+"""
+    KL_divergence(p, q)
+
+Kullback–Leibler divergence between distributions `p` and `q`.
+"""
 function KL_divergence(p, q)
   return sum(p .* log2.(p ./ q))
 end
 
+"""
+    JS_divergence(p, q)
+
+Jensen–Shannon divergence between `p` and `q`.
+"""
 function JS_divergence(p, q)
   m = (p .+ q) ./ 2
   kl_pm = KL_divergence(p, m)
@@ -364,6 +484,13 @@ function JS_divergence(p, q)
   return 0.5 * kl_pm + 0.5 * kl_qm
 end
 
+"""
+    JS_distance(p, q)
+    JS_distance(ps::Array{Float32,4})
+
+Jensen–Shannon distance for two distributions or pairwise distances for a
+stack of distributions.
+"""
 function JS_distance(p, q)
   return sqrt(JS_divergence(p, q))
 end

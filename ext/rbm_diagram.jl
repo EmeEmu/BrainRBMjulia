@@ -1,3 +1,14 @@
+"""
+    rbmdiagram(v, h, W; vcmap=:Greens, hcmap=:plasma, wcmap=cmap_aseismic(),
+               vrange=(0,1), hrange=(-1,1), wrange=(-1,1), orientation=:h,
+               show_v=true, kwargs...)
+
+Visualise visible and hidden unit activations of an RBM together with its
+weights.
+
+`v` and `h` are vectors of visible and hidden values while `W` is the
+weight matrix. Colours and layout can be customised via keyword arguments.
+"""
 @recipe(RBMDiagram) do scene
     Attributes(
         vcmap=:Greens,

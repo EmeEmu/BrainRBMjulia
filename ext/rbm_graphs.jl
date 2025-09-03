@@ -1,3 +1,12 @@
+"""
+    generate_energy_plotter(rbm, gen, data)
+
+Visualise training energies and free-energy distributions.
+
+Returns a figure with two panels: the left panel shows the mean free
+energy over Gibbs sampling steps during generation; the right panel
+compares free energies of training, validation, and generated data.
+"""
 function generate_energy_plotter(rbm, gen::GeneratedData, data::DatasetSplit)
   fig = Figure(size=(2 * 200, 200))
 
@@ -15,6 +24,13 @@ function generate_energy_plotter(rbm, gen::GeneratedData, data::DatasetSplit)
   return fig
 end
 
+"""
+    stats_plotter(moments; nrmses=nothing)
+
+Create identity plots for moment statistics.
+
+If `nrmses` is not supplied it is recomputed from `moments`.
+"""
 function stats_plotter(moments::MomentsAggregate; nrmses::Union{Dict,Nothing}=nothing)
   stats = ["<v>", "<h>", "<vh>", "<vv> - <v><v>", "<hh> - <h><h>"]
 
@@ -45,6 +61,11 @@ function stats_plotter(moments::MomentsAggregate; nrmses::Union{Dict,Nothing}=no
   return fig
 end
 
+"""
+    hu_params_plotter(pos, layer)
+
+Plot distributions of hidden-unit potential parameters.
+"""
 function hu_params_plotter(pos::GridPosition, layer::xReLU)
   g = GridLayout(pos)
 
@@ -76,6 +97,12 @@ function hu_params_plotter(pos::GridPosition, layer::xReLU)
   # return fig
 end
 
+"""
+    hidden_hists(pos, h_data, h_gen)
+
+Compare hidden-unit activations between data and generated samples using
+violin plots.
+"""
 function hidden_hists(pos::GridPosition, h_data, h_gen)
   M = size(h_data, 1)
   T1 = size(h_data, 2)
