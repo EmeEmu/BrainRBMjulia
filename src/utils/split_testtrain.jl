@@ -1,3 +1,15 @@
+"""
+    DatasetSplit
+
+Container holding a random training/validation split of a dataset.
+
+Fields
+------
+- `train_inds`: column indices used for training
+- `valid_inds`: column indices used for validation
+- `train`: training subset of the data
+- `valid`: validation subset of the data
+"""
 struct DatasetSplit
   train_inds::Vector{Int}
   valid_inds::Vector{Int}
@@ -6,6 +18,14 @@ struct DatasetSplit
 end
 
 
+"""
+    split_set(X; p_train=0.75)
+
+Randomly split columns of `X` into a training and validation set with a
+fraction `p_train` assigned to training.
+
+Returns a [`DatasetSplit`](@ref).
+"""
 function split_set(X::Union{Matrix,BitMatrix}; p_train=0.75)
   i_train = Int(floor(p_train * size(X, 2)))
   inds = range(1, size(X, 2)) |> collect
@@ -22,6 +42,12 @@ function split_set(X::Union{Matrix,BitMatrix}; p_train=0.75)
   )
 end
 
+"""
+    SectionSplit
+
+Utility to split a time series into sections and evaluate all possible
+train/test combinations of these sections.
+"""
 mutable struct SectionSplit
   N::Int # number of sections
   ftrain::AbstractFloat # fraction of train set
@@ -32,6 +58,12 @@ mutable struct SectionSplit
   rmse_v_comb::Vector{Float64} # <v> moment between train and test sets for all combinations
   rmse_vv_comb::Vector{Float64} # <vv> moment between train and test sets for all combinations
 
+  """
+      SectionSplit(nt::Int, ftrain; N=10)
+
+Construct a `SectionSplit` for a signal of length `nt`, dividing it into
+`N` sections and setting aside a fraction `ftrain` for training.
+"""
   function SectionSplit(nt::Int, ftrain::AbstractFloat; N::Int=10)
     # create SectionSplit from number of time points
     # it will need to be rmses will need to be computed externaly
@@ -49,6 +81,12 @@ mutable struct SectionSplit
     new(N, ftrain, 1 - ftrain, sec_inds, train_comb, test_comb, zeros(2), zeros(2))
   end
 
+  """
+      SectionSplit(v::M, ftrain; N=10, N_vv=5000)
+
+Create a `SectionSplit` from data matrix `v`, immediately computing the
+RMSE between sections to guide future splits.
+"""
   function SectionSplit(v::M, ftrain::AbstractFloat; N::Int=10, N_vv::Int=5000) where {M<:Union{BitMatrix,AbstractMatrix}}
     ssplt = SectionSplit(size(v, 2), ftrain; N)
     rmse_v, rmse_vv = sections_to_rmses(v, ssplt; N_vv)
@@ -59,6 +97,12 @@ mutable struct SectionSplit
 end
 
 
+"""
+    section_moments(split1, split2; N_vv=100)
+
+Compute mean activity and covariance moments for two data splits.
+Returns `(m_v_1, m_v_2, m_vv_1, m_vv_2)`.
+"""
 function section_moments(split1::M, split2::M; N_vv::Int=100) where {M<:Union{BitMatrix,AbstractMatrix}}
   m_v_1 = mean(split1, dims=2)[:, 1]
   m_v_2 = mean(split2, dims=2)[:, 1]
@@ -68,6 +112,12 @@ function section_moments(split1::M, split2::M; N_vv::Int=100) where {M<:Union{Bi
   return m_v_1, m_v_2, m_vv_1, m_vv_2
 end
 
+"""
+    section_to_sets(i, v, ssplt)
+
+Return the `(train, test)` matrices for the `i`-th split defined in
+`ssplt`.
+"""
 function section_to_sets(i::Int, v::M, ssplt::SectionSplit) where {M<:Union{BitMatrix,AbstractMatrix}}
   train_inds = vcat(ssplt.sec_inds[ssplt.train_comb[i]]...)
   test_inds = vcat(ssplt.sec_inds[ssplt.test_comb[i]]...)
@@ -76,11 +126,23 @@ function section_to_sets(i::Int, v::M, ssplt::SectionSplit) where {M<:Union{BitM
   return train, test
 end
 
+"""
+    section_to_moments(i, v, ssplt; N_vv=100)
+
+Compute moments for the `i`-th train/test split produced by `ssplt`.
+"""
 function section_to_moments(i::Int, v::M, ssplt::SectionSplit; N_vv::Int=100) where {M<:Union{BitMatrix,AbstractMatrix}}
   train, test = section_to_sets(i, v, ssplt)
   return section_moments(train, test; N_vv)
 end
 
+"""
+    sections_to_rmses(v, ssplt; N_vv=100)
+
+Evaluate RMSE of first- and second-order moments for all splits encoded
+in `ssplt` using data `v`.
+Returns vectors `(rmse_v, rmse_vv)`.
+"""
 function sections_to_rmses(v::M, ssplt::SectionSplit; N_vv::Int=100) where {M<:Union{BitMatrix,AbstractMatrix}}
   rmse_v = []
   rmse_vv = []
@@ -93,6 +155,12 @@ function sections_to_rmses(v::M, ssplt::SectionSplit; N_vv::Int=100) where {M<:U
 end
 
 
+"""
+    split_set(v, ssplt; q=0.1)
+
+Choose a train/test split from `ssplt` whose combined RMSE is closest to
+the `q`-quantile and return it as a [`DatasetSplit`](@ref).
+"""
 function split_set(v::M, ssplt::SectionSplit; q=0.1) where M <: Union{BitMatrix, AbstractMatrix}
     rmses = ssplt.rmse_v_comb .* ssplt.rmse_vv_comb;
     i = argmin(abs.(rmses .- quantile(rmses, q)))
