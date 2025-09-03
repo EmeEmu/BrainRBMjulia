@@ -1,4 +1,13 @@
 begin
+  """
+      idplotter(x, y; kwargs...)
+
+  Plot `y` versus `x` with an identity reference line.
+
+  For small datasets a scatter plot is used; larger datasets are
+  aggregated with hexagonal binning. The normalised root mean squared
+  error (nRMSE) between the two variables can optionally be displayed.
+  """
   @recipe(IdPlotter) do scene
     Attributes(
       id_color=:gray,
@@ -67,6 +76,17 @@ begin
 
 end
 
+"""
+    multi_id(data; panelsize=100, xlabel="X", ylabel="Y", layout=:br, loglog=false, switch_thresh=1e3)
+
+Create a matrix of identity plots comparing all pairs of variables in
+`data`.
+
+`data` is expected to be a three‑dimensional array where the first
+dimension selects the variable and the remaining dimensions contain the
+observations. The layout can be arranged in a broken‑regular grid (`:br`),
+as a column, or as a row.
+"""
 function multi_id(data::AbstractArray; panelsize::Int=100, xlabel="X", ylabel="Y", layout::Symbol=:br, loglog=false, switch_thresh=1.e3)
   n = size(data, 1)
   mmax = maximum(data)
@@ -152,18 +172,37 @@ function multi_id(data::AbstractArray; panelsize::Int=100, xlabel="X", ylabel="Y
   resize_to_layout!(fig)
   return fig
 end
+
+"""
+    multi_id(data::Vector{Matrix{Float32}}; kwargs...)
+
+Call [`multi_id`](@ref) on a vector of `Float32` matrices.
+"""
 function multi_id(data::Vector{Matrix{Float32}}; panelsize::Int=100, xlabel="X", ylabel="Y", layout::Symbol=:br, loglog=false, switch_thresh=1.e3)
   return multi_id(
     vecmatTOarray(data);
     panelsize, xlabel, ylabel, layout, loglog, switch_thresh
   )
 end
+
+"""
+    multi_id(data::Vector{Matrix{Float64}}; kwargs...)
+
+Call [`multi_id`](@ref) on a vector of `Float64` matrices.
+"""
 function multi_id(data::Vector{Matrix{Float64}}; panelsize::Int=100, xlabel="X", ylabel="Y", layout::Symbol=:br, loglog=false, switch_thresh=1.e3)
   return multi_id(
     vecmatTOarray(data);
     panelsize, xlabel, ylabel, layout, loglog, switch_thresh
   )
 end
+
+"""
+    multi_id(data::Vector{Vector{Float64}}; kwargs...)
+
+Call [`multi_id`](@ref) on a vector of vectors, interpreted as row
+matrices before plotting.
+"""
 function multi_id(data::Vector{Vector{Float64}}; panelsize::Int=100, xlabel="X", ylabel="Y", layout::Symbol=:br, loglog=false, switch_thresh=1.e3)
   return multi_id(
     vecvecTOarray(data);
